@@ -1,0 +1,1554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAP GTS — Business Case Builder</title>
+<style>
+  :root {
+    --sap-blue: #0070f2;
+    --sap-blue-dark: #0050b3;
+    --sap-gold: #f0ab00;
+    --sap-green: #107e3e;
+    --sap-red: #bb0000;
+    --sap-gray: #6a6d70;
+    --sap-light: #f5f6f7;
+    --sap-border: #d9d9d9;
+    --slide-w: 960px;
+    --slide-h: 540px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: '72', 'SAP-icons', Arial, sans-serif; background: #f0f2f5; color: #32363a; }
+
+  /* ── QUESTIONNAIRE ── */
+  #app { max-width: 780px; margin: 40px auto; padding: 0 20px 80px; }
+  .hero { text-align: center; padding: 48px 0 32px; }
+  .hero img { height: 40px; }
+  .hero h1 { font-size: 28px; font-weight: 700; color: #32363a; margin-top: 16px; }
+  .hero p { color: var(--sap-gray); margin-top: 8px; font-size: 15px; }
+  .sap-logo { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 8px; }
+  .sap-logo span.logo-box { background: var(--sap-blue); color: #fff; font-weight: 900; font-size: 22px; padding: 4px 12px; border-radius: 4px; letter-spacing: 2px; }
+  .sap-logo span.logo-text { font-size: 16px; font-weight: 600; color: var(--sap-gray); }
+
+  .progress-bar { background: var(--sap-border); border-radius: 8px; height: 6px; margin-bottom: 32px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--sap-blue); border-radius: 8px; transition: width .4s ease; }
+
+  .card { background: #fff; border: 1px solid var(--sap-border); border-radius: 10px; padding: 32px 36px; margin-bottom: 24px; }
+  .card h2 { font-size: 18px; font-weight: 700; color: var(--sap-blue); margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+  .card h2 .badge { background: var(--sap-blue); color: #fff; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+
+  .field { margin-bottom: 20px; }
+  .field label { display: block; font-size: 13px; font-weight: 600; color: #32363a; margin-bottom: 6px; }
+  .field label .req { color: var(--sap-blue); margin-left: 3px; }
+  .field input[type=text], .field input[type=number], .field select, .field textarea {
+    width: 100%; border: 1px solid var(--sap-border); border-radius: 6px; padding: 10px 14px;
+    font-size: 14px; color: #32363a; background: #fafafa; transition: border-color .2s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    outline: none; border-color: var(--sap-blue); background: #fff;
+  }
+  .field textarea { min-height: 80px; resize: vertical; }
+  .field .hint { font-size: 12px; color: var(--sap-gray); margin-top: 5px; }
+
+  .radio-group, .check-group { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+  .radio-option, .check-option {
+    border: 1px solid var(--sap-border); border-radius: 6px; padding: 8px 16px;
+    cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px;
+    transition: all .2s; user-select: none;
+  }
+  .radio-option:hover, .check-option:hover { border-color: var(--sap-blue); background: #f0f7ff; }
+  .radio-option.selected, .check-option.selected { border-color: var(--sap-blue); background: #e8f3ff; color: var(--sap-blue); font-weight: 600; }
+  .radio-option input, .check-option input { display: none; }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media(max-width:560px){ .row2 { grid-template-columns: 1fr; } }
+
+  .btn { padding: 11px 28px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all .2s; }
+  .btn-primary { background: var(--sap-blue); color: #fff; }
+  .btn-primary:hover { background: var(--sap-blue-dark); }
+  .btn-secondary { background: #fff; color: var(--sap-blue); border: 1px solid var(--sap-blue); margin-right: 12px; }
+  .btn-secondary:hover { background: #f0f7ff; }
+  .btn-success { background: var(--sap-green); color: #fff; font-size: 15px; padding: 13px 36px; }
+  .btn-success:hover { background: #0a5c2c; }
+  .nav-row { display: flex; justify-content: space-between; align-items: center; margin-top: 28px; }
+  .step-indicator { font-size: 13px; color: var(--sap-gray); }
+
+  /* ── DECK ── */
+  #deck { display: none; }
+  .deck-toolbar {
+    position: fixed; top: 0; left: 0; right: 0; height: 56px;
+    background: #fff; border-bottom: 1px solid var(--sap-border);
+    display: flex; align-items: center; padding: 0 24px; gap: 12px; z-index: 100;
+  }
+  .deck-toolbar .title { font-weight: 700; color: #32363a; margin-right: auto; font-size: 15px; }
+  .slide-nav { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--sap-gray); }
+  .slide-nav button { background: none; border: 1px solid var(--sap-border); border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 13px; }
+  .slide-nav button:hover { background: var(--sap-light); }
+
+  .slides-container { padding: 72px 24px 40px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .slide {
+    width: var(--slide-w); min-height: var(--slide-h);
+    background: #fff; box-shadow: 0 4px 20px rgba(0,0,0,.12);
+    border-radius: 4px; overflow: hidden; position: relative;
+    page-break-after: always; break-after: page;
+  }
+
+  /* Slide types */
+  .slide-cover {
+    background: linear-gradient(135deg, #012a4a 0%, #0057a8 60%, #0070f2 100%);
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 60px 70px; color: #fff;
+  }
+  .slide-cover .eyebrow { font-size: 13px; text-transform: uppercase; letter-spacing: 2px; opacity: .7; margin-bottom: 14px; }
+  .slide-cover h1 { font-size: 36px; font-weight: 700; line-height: 1.2; margin-bottom: 16px; }
+  .slide-cover .sub { font-size: 16px; opacity: .85; }
+  .slide-cover .company-tag { margin-top: 40px; background: rgba(255,255,255,.15); display: inline-block; padding: 8px 20px; border-radius: 20px; font-size: 13px; }
+  .slide-cover .logo-corner { position: absolute; top: 32px; right: 40px; }
+  .slide-cover .logo-corner .lb { background: #fff; color: var(--sap-blue); font-weight: 900; font-size: 18px; padding: 4px 10px; border-radius: 3px; letter-spacing: 1px; }
+
+  .slide-section {
+    background: linear-gradient(90deg, var(--sap-blue) 0%, #0050b3 100%);
+    display: flex; flex-direction: column; justify-content: center; align-items: flex-start;
+    padding: 60px 70px; color: #fff;
+  }
+  .slide-section .num { font-size: 72px; font-weight: 900; opacity: .18; line-height: 1; }
+  .slide-section h2 { font-size: 32px; font-weight: 700; margin-top: -20px; }
+  .slide-section .desc { margin-top: 12px; font-size: 15px; opacity: .85; max-width: 600px; }
+
+  .slide-content { padding: 44px 56px; display: flex; flex-direction: column; }
+  .slide-content .slide-title { font-size: 22px; font-weight: 700; color: #32363a; border-left: 4px solid var(--sap-blue); padding-left: 14px; margin-bottom: 28px; }
+  .slide-content .slide-title.green { border-color: var(--sap-green); }
+  .slide-content .slide-title.gold { border-color: var(--sap-gold); }
+  .slide-content .slide-title.red { border-color: var(--sap-red); }
+
+  .kpi-row { display: flex; gap: 16px; margin-bottom: 24px; }
+  .kpi-box { flex: 1; background: var(--sap-light); border-radius: 8px; padding: 18px 20px; text-align: center; border-top: 3px solid var(--sap-blue); }
+  .kpi-box.green { border-color: var(--sap-green); }
+  .kpi-box.gold { border-color: var(--sap-gold); }
+  .kpi-box.red { border-color: var(--sap-red); }
+  .kpi-box .val { font-size: 28px; font-weight: 700; color: #32363a; }
+  .kpi-box .label { font-size: 11px; color: var(--sap-gray); margin-top: 4px; text-transform: uppercase; letter-spacing: .5px; }
+
+  .bullet-list { list-style: none; }
+  .bullet-list li { padding: 7px 0 7px 22px; position: relative; font-size: 14px; border-bottom: 1px solid #f0f0f0; line-height: 1.5; }
+  .bullet-list li:last-child { border-bottom: none; }
+  .bullet-list li::before { content: '▸'; position: absolute; left: 0; color: var(--sap-blue); font-size: 12px; top: 9px; }
+  .bullet-list li strong { color: #32363a; }
+  .bullet-list li .sub-note { font-size: 12px; color: var(--sap-gray); display: block; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .col-box { background: var(--sap-light); border-radius: 8px; padding: 18px 20px; }
+  .col-box h4 { font-size: 13px; font-weight: 700; text-transform: uppercase; color: var(--sap-gray); margin-bottom: 12px; letter-spacing: .5px; }
+
+  .risk-bar { background: #fff; border: 1px solid var(--sap-border); border-radius: 6px; padding: 12px 16px; margin-bottom: 10px; }
+  .risk-bar .risk-label { font-size: 13px; font-weight: 600; margin-bottom: 6px; display: flex; justify-content: space-between; }
+  .risk-bar .bar-track { background: #eee; border-radius: 4px; height: 8px; }
+  .risk-bar .bar-fill { height: 100%; border-radius: 4px; background: var(--sap-red); }
+  .risk-bar .bar-fill.medium { background: var(--sap-gold); }
+  .risk-bar .bar-fill.low { background: var(--sap-green); }
+
+  .fine-example { background: #fff5f5; border-left: 4px solid var(--sap-red); padding: 10px 14px; border-radius: 0 6px 6px 0; margin-bottom: 8px; font-size: 13px; }
+  .fine-example strong { color: var(--sap-red); }
+
+  .saving-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
+  .saving-row:last-child { border-bottom: none; }
+  .saving-row .saving-label { color: #32363a; }
+  .saving-row .saving-val { font-weight: 700; color: var(--sap-green); }
+
+  .table-wrap { overflow-x: auto; margin-top: 8px; }
+  table.comp { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.comp th { background: var(--sap-blue); color: #fff; padding: 10px 14px; text-align: left; }
+  table.comp td { padding: 9px 14px; border-bottom: 1px solid #eee; }
+  table.comp tr:nth-child(even) td { background: #f9f9f9; }
+  table.comp td.highlight { font-weight: 700; color: var(--sap-green); }
+
+  .footer-bar {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 36px;
+    background: var(--sap-blue); display: flex; align-items: center;
+    justify-content: space-between; padding: 0 24px; color: rgba(255,255,255,.7); font-size: 11px;
+  }
+  .footer-bar .slide-num { color: #fff; font-weight: 600; }
+
+  .assumption-list { list-style: none; counter-reset: ac; }
+  .assumption-list li { counter-increment: ac; padding: 8px 0 8px 30px; position: relative; font-size: 13px; border-bottom: 1px solid #f0f0f0; color: #555; }
+  .assumption-list li::before { content: counter(ac); position: absolute; left: 0; background: var(--sap-gray); color: #fff; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; top: 9px; }
+
+  .tag { display: inline-block; background: #e8f3ff; color: var(--sap-blue); border-radius: 12px; padding: 2px 10px; font-size: 11px; font-weight: 600; margin-right: 4px; }
+  .tag.green { background: #e8f5ee; color: var(--sap-green); }
+  .tag.gold { background: #fff8e1; color: #b07d00; }
+  .tag.red { background: #fdecea; color: var(--sap-red); }
+
+  .note-box { background: #fff8e1; border-left: 4px solid var(--sap-gold); padding: 10px 16px; border-radius: 0 6px 6px 0; font-size: 12px; color: #5a4500; margin-top: 12px; }
+
+  .scope-subs-panel { background: #f0f7ff; border-left: 3px solid var(--sap-blue); border-radius: 0 6px 6px 0; padding: 10px 14px; margin-top: 6px; animation: fadeIn .2s ease; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
+  .scope-subs-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--sap-blue); margin-bottom: 8px; }
+  .check-option.scope-sub { font-size: 12px; padding: 5px 12px; background: #fff; }
+  .check-option.scope-parent.selected::after { content: ' ▾'; font-size: 10px; }
+
+  .footer-bar .footer-sap-logo { height: 18px; width: auto; background: rgba(255,255,255,.92); border-radius: 2px; padding: 1px 4px; }
+  .footer-bar { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .cover-logo-corner { position: absolute; top: 28px; right: 36px; }
+  .cover-logo-corner .sap-svg { height: 36px; width: auto; }
+
+  @media print {
+    .deck-toolbar { display: none !important; }
+    .slides-container { padding: 0; gap: 0; }
+    .slide { box-shadow: none; border-radius: 0; width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════ QUESTIONNAIRE ═══════════════════════════════════════ -->
+<div id="app">
+  <div class="hero">
+    <div class="sap-logo">
+      <span class="logo-box">SAP</span>
+      <span class="logo-text">GTS Business Case Builder</span>
+    </div>
+    <h1>Build Your ROI Presentation</h1>
+    <p>Answer a few questions to generate a tailored PowerPoint-style deck for SAP GTS edition for HANA</p>
+  </div>
+
+  <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:14%"></div></div>
+
+  <!-- Step 1 -->
+  <div class="step" id="step1">
+    <div class="card">
+      <h2><span class="badge">1</span>Company Information</h2>
+      <div class="field">
+        <label>Company Name <span class="req">*</span></label>
+        <input type="text" id="q_company" placeholder="e.g. Acme Industries GmbH">
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Presentation Currency</label>
+          <select id="q_currency" title="Presentation Currency" onchange="onCurrencyChange()">
+            <option value="USD">USD — US Dollar ($)</option>
+            <option value="EUR">EUR — Euro (€)</option>
+            <option value="GBP">GBP — British Pound (£)</option>
+            <option value="JPY">JPY — Japanese Yen (¥)</option>
+            <option value="CHF">CHF — Swiss Franc (CHF)</option>
+            <option value="CAD">CAD — Canadian Dollar (C$)</option>
+            <option value="AUD">AUD — Australian Dollar (A$)</option>
+            <option value="SGD">SGD — Singapore Dollar (S$)</option>
+            <option value="INR">INR — Indian Rupee (₹)</option>
+            <option value="CNY">CNY — Chinese Yuan (¥)</option>
+            <option value="BRL">BRL — Brazilian Real (R$)</option>
+            <option value="MXN">MXN — Mexican Peso (MX$)</option>
+          </select>
+          <div class="hint">All ROI figures will be displayed in the selected currency. Input benchmark values (duties, broker costs) should be entered in this currency.</div>
+        </div>
+        <div class="field">
+          <label>Industry Sector <span class="req">*</span></label>
+          <select id="q_industry">
+            <option value="">— Select —</option>
+            <option value="Aerospace & Defense">Aerospace &amp; Defense</option>
+            <option value="Automotive">Automotive</option>
+            <option value="Chemicals">Chemicals</option>
+            <option value="Electronics & Technology">Electronics &amp; Technology</option>
+            <option value="Energy & Oil/Gas">Energy &amp; Oil/Gas</option>
+            <option value="Industrial Machinery">Industrial Machinery</option>
+            <option value="Life Sciences & Pharma">Life Sciences &amp; Pharma</option>
+            <option value="Manufacturing (General)">Manufacturing (General)</option>
+            <option value="Retail & Consumer Goods">Retail &amp; Consumer Goods</option>
+            <option value="Semiconductors">Semiconductors</option>
+            <option value="Telecom & Network Equipment">Telecom &amp; Network Equipment</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Annual Revenue (approximate)</label>
+        <select id="q_revenue">
+          <option value="">— Select —</option>
+          <option value="<$100M">Under $100M</option>
+          <option value="$100M–$500M">$100M – $500M</option>
+          <option value="$500M–$1B">$500M – $1B</option>
+          <option value="$1B–$5B">$1B – $5B</option>
+          <option value=">$5B">Over $5B</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>SAP Platform</label>
+        <div class="radio-group" id="q_erp">
+          <label class="radio-option" onclick="selectRadio('q_erp','ECC');toggleS4Plan()"><input type="radio" value="ECC">SAP ECC (on-premise)</label>
+          <label class="radio-option" onclick="selectRadio('q_erp','S4HANA');toggleS4Plan()"><input type="radio" value="S4HANA">SAP S/4HANA</label>
+          <label class="radio-option" onclick="selectRadio('q_erp','EWM');toggleS4Plan()"><input type="radio" value="EWM">SAP EWM</label>
+          <label class="radio-option" onclick="selectRadio('q_erp','TM');toggleS4Plan()"><input type="radio" value="TM">SAP TM</label>
+          <label class="radio-option" onclick="selectRadio('q_erp','Non-SAP');toggleS4Plan()"><input type="radio" value="Non-SAP">Non-SAP ERP</label>
+          <label class="radio-option" onclick="selectRadio('q_erp','None');toggleS4Plan()"><input type="radio" value="None">Not yet on SAP</label>
+        </div>
+      </div>
+      <div class="field" id="q_s4plan_wrap" style="display:none">
+        <label>Are you planning to migrate to S/4HANA?</label>
+        <div class="radio-group" id="q_s4plan">
+          <label class="radio-option" onclick="selectRadio('q_s4plan','1-2yr')"><input type="radio" value="1-2yr">Migration planned (1–2 years)</label>
+          <label class="radio-option" onclick="selectRadio('q_s4plan','3yr+')"><input type="radio" value="3yr+">Migration planned (3+ years)</label>
+          <label class="radio-option" onclick="selectRadio('q_s4plan','No')"><input type="radio" value="No">No plans</label>
+        </div>
+      </div>
+      <div class="field" style="margin-top:24px">
+        <label>SAP GTS Scope</label>
+        <div class="hint">Select all modules in scope — click a module to reveal its sub-components.</div>
+        <div class="check-group" style="margin-top:10px">
+          <label class="check-option scope-parent" id="scope_compliance" onclick="toggleScope('compliance')">Compliance</label>
+          <label class="check-option scope-parent" id="scope_customs" onclick="toggleScope('customs')">Customs</label>
+          <label class="check-option scope-parent" id="scope_special" onclick="toggleScope('special')">Special Procedures</label>
+          <label class="check-option scope-parent" id="scope_preference" onclick="toggleScope('preference')">Preference</label>
+          <label class="check-option scope-parent" id="scope_intrastat" onclick="toggleScope('intrastat')">Intrastat</label>
+        </div>
+        <div class="scope-subs-panel" id="scope_compliance_subs" style="display:none">
+          <div class="scope-subs-label">Compliance — sub-components</div>
+          <div class="check-group">
+            <label class="check-option scope-sub" onclick="toggleCheck(this)">SPL</label>
+            <label class="check-option scope-sub" onclick="toggleCheck(this)">Embargo</label>
+            <label class="check-option scope-sub" onclick="toggleCheck(this)">Legal Control</label>
+          </div>
+        </div>
+        <div class="scope-subs-panel" id="scope_customs_subs" style="display:none">
+          <div class="scope-subs-label">Customs — sub-components</div>
+          <div class="check-group">
+            <label class="check-option scope-sub" onclick="toggleCheck(this)">Export</label>
+            <label class="check-option scope-sub" onclick="toggleCheck(this)">Imports</label>
+          </div>
+        </div>
+        <div class="scope-subs-panel" id="scope_special_subs" style="display:none">
+          <div class="scope-subs-label">Special Procedures — sub-components</div>
+          <div class="check-group">
+            <label class="check-option scope-sub" onclick="toggleCheck(this)">Bonded Warehouse</label>
+            <label class="check-option scope-sub" onclick="toggleCheck(this)">IPR</label>
+            <label class="check-option scope-sub" onclick="toggleCheck(this)">OPR</label>
+            <label class="check-option scope-sub" onclick="toggleCheck(this)">PUCC</label>
+            <label class="check-option scope-sub" onclick="toggleCheck(this)">FTZ</label>
+            <label class="check-option scope-sub" onclick="toggleCheck(this)">CPT</label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="nav-row">
+      <span class="step-indicator">Step 1 of 7</span>
+      <button class="btn btn-primary" onclick="goNext(1)">Next →</button>
+    </div>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="step" id="step3" style="display:none">
+    <div class="card">
+      <h2><span class="badge">3</span>Compliance &amp; Export Controls</h2>
+      <div class="field">
+        <label>Do you have export-controlled products? <span class="req">*</span></label>
+        <div class="radio-group" id="q_controlled">
+          <label class="radio-option" onclick="selectRadio('q_controlled','Yes')"><input type="radio" value="Yes">Yes</label>
+          <label class="radio-option" onclick="selectRadio('q_controlled','No')"><input type="radio" value="No">No</label>
+          <label class="radio-option" onclick="selectRadio('q_controlled','Unsure')"><input type="radio" value="Unsure">Unsure</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>If yes — which regimes apply? (select all that apply)</label>
+        <div class="check-group" id="q_regimes">
+          <label class="check-option" onclick="toggleCheck(this)">ITAR (US)</label>
+          <label class="check-option" onclick="toggleCheck(this)">EAR / BIS (US)</label>
+          <label class="check-option" onclick="toggleCheck(this)">Dual-Use (EU)</label>
+          <label class="check-option" onclick="toggleCheck(this)">Military / AUKUS</label>
+          <label class="check-option" onclick="toggleCheck(this)">Chemical Weapons (CWC)</label>
+          <label class="check-option" onclick="toggleCheck(this)">Nuclear (NRC)</label>
+          <label class="check-option" onclick="toggleCheck(this)">Other</label>
+        </div>
+        <div class="hint">Leave blank if N/A</div>
+      </div>
+      <div class="field">
+        <label>How many users handle trade compliance?</label>
+        <input type="number" id="q_users" placeholder="e.g. 5" min="1" max="5000">
+      </div>
+      <div class="field">
+        <label>Do you have a dedicated trade compliance team?</label>
+        <div class="radio-group" id="q_team">
+          <label class="radio-option" onclick="selectRadio('q_team','Dedicated')"><input type="radio" value="Dedicated">Yes, dedicated team</label>
+          <label class="radio-option" onclick="selectRadio('q_team','Shared')"><input type="radio" value="Shared">Shared with legal / finance</label>
+          <label class="radio-option" onclick="selectRadio('q_team','AdHoc')"><input type="radio" value="AdHoc">Ad hoc only</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>How do you currently screen for denied parties &amp; sanctions? (select all that apply)</label>
+        <div class="check-group" id="q_screening">
+          <label class="check-option" onclick="toggleCheck(this)">Manual spreadsheet checks</label>
+          <label class="check-option" onclick="toggleCheck(this)">Third-party screening tool</label>
+          <label class="check-option" onclick="toggleCheck(this)">ERP built-in</label>
+          <label class="check-option" onclick="toggleCheck(this)">No systematic screening</label>
+        </div>
+        <div class="hint">e.g. Amber Road, Visual Compliance, Descartes</div>
+      </div>
+      <div class="field">
+        <label>Approximate denied party screening volume per year</label>
+        <input type="number" id="q_screen_vol" placeholder="e.g. 5000" min="0">
+        <div class="hint">Include customers, suppliers, and intermediaries screened</div>
+      </div>
+      <div class="field">
+        <label>How many active export licenses do you manage?</label>
+        <select id="q_licenses">
+          <option value="">— Select —</option>
+          <option value="None">None</option>
+          <option value="1-10">1 – 10</option>
+          <option value="11-50">11 – 50</option>
+          <option value="51-200">51 – 200</option>
+          <option value="200+">200+</option>
+        </select>
+      </div>
+    </div>
+    <div class="nav-row">
+      <button class="btn btn-secondary" onclick="goBack(3)">← Back</button>
+      <span class="step-indicator">Step 3 of 7</span>
+      <button class="btn btn-primary" onclick="goNext(3)">Next →</button>
+    </div>
+  </div>
+
+  <!-- Step 4 -->
+  <div class="step" id="step4" style="display:none">
+    <div class="card">
+      <h2><span class="badge">4</span>Customs Operations</h2>
+      <div class="row2">
+        <div class="field">
+          <label>Countries active in (customs) <span class="req">*</span></label>
+          <input type="number" id="q_countries" placeholder="e.g. 25" min="1" max="250">
+        </div>
+        <div class="field">
+          <label>How many users handle customs operations?</label>
+          <input type="number" id="q_customs_users" placeholder="e.g. 8" min="1" max="5000">
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Export declarations / year</label>
+          <input type="number" id="q_exports" placeholder="e.g. 5000" min="0">
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Import declarations / year</label>
+          <input type="number" id="q_imports" placeholder="e.g. 8000" min="0">
+        </div>
+        <div class="field">
+          <label>Transit declarations / year</label>
+          <input type="number" id="q_transit" placeholder="e.g. 1000" min="0">
+        </div>
+      </div>
+      <div class="field">
+        <label>Customs broker cost per declaration (<span class="cur-label">USD</span>)</label>
+        <input type="number" id="q_broker_cost" placeholder="e.g. 85" min="0">
+        <div class="hint">Typical range: $50–$250 per entry. Leave blank to use industry average.</div>
+      </div>
+      <div class="field">
+        <label>Do you use customs brokers for some or all declarations?</label>
+        <div class="radio-group" id="q_broker">
+          <label class="radio-option" onclick="selectRadio('q_broker','All')"><input type="radio" value="All">All declarations</label>
+          <label class="radio-option" onclick="selectRadio('q_broker','Some')"><input type="radio" value="Some">Some declarations</label>
+          <label class="radio-option" onclick="selectRadio('q_broker','No')"><input type="radio" value="No">In-house only</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>Have you received customs penalties or been audited in the last 3 years?</label>
+        <div class="radio-group" id="q_penalties">
+          <label class="radio-option" onclick="selectRadio('q_penalties','Penalties')"><input type="radio" value="Penalties">Yes, penalties paid</label>
+          <label class="radio-option" onclick="selectRadio('q_penalties','AuditOnly')"><input type="radio" value="AuditOnly">Yes, audit only</label>
+          <label class="radio-option" onclick="selectRadio('q_penalties','No')"><input type="radio" value="No">No</label>
+          <label class="radio-option" onclick="selectRadio('q_penalties','Current')"><input type="radio" value="Current">Currently under audit</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>What percentage of your customs declarations are currently automated?</label>
+        <select id="q_automation">
+          <option value="">— Select —</option>
+          <option value="<25%">Less than 25%</option>
+          <option value="25-50%">25 – 50%</option>
+          <option value="51-75%">51 – 75%</option>
+          <option value=">75%">More than 75%</option>
+        </select>
+      </div>
+    </div>
+    <div class="nav-row">
+      <button class="btn btn-secondary" onclick="goBack(4)">← Back</button>
+      <span class="step-indicator">Step 4 of 7</span>
+      <button class="btn btn-primary" onclick="goNext(4)">Next →</button>
+    </div>
+  </div>
+
+  <!-- Step 5 -->
+  <div class="step" id="step5" style="display:none">
+    <div class="card">
+      <h2><span class="badge">5</span>Special Procedures</h2>
+      <div class="field">
+        <label>Do you use any of these special customs procedures? (select all that apply)</label>
+        <div class="check-group" id="q_procedures">
+          <label class="check-option" onclick="toggleCheck(this)">Bonded Warehouse</label>
+          <label class="check-option" onclick="toggleCheck(this)">Free Trade Zone (FTZ)</label>
+          <label class="check-option" onclick="toggleCheck(this)">Inward Processing (IPR)</label>
+          <label class="check-option" onclick="toggleCheck(this)">Outward Processing</label>
+          <label class="check-option" onclick="toggleCheck(this)">Temporary Admission</label>
+          <label class="check-option" onclick="toggleCheck(this)">Customs Warehousing</label>
+          <label class="check-option" onclick="toggleCheck(this)">PUCC (Processing under Customs Control)</label>
+          <label class="check-option" onclick="toggleCheck(this)">China CPT</label>
+          <label class="check-option" onclick="toggleCheck(this)">Mexico IMMEX</label>
+          <label class="check-option" onclick="toggleCheck(this)">EMCS (Excise Movement)</label>
+          <label class="check-option" onclick="toggleCheck(this)">None</label>
+        </div>
+      </div>
+    </div>
+    <div class="nav-row">
+      <button class="btn btn-secondary" onclick="goBack(5)">← Back</button>
+      <span class="step-indicator">Step 5 of 7</span>
+      <button class="btn btn-primary" onclick="goNext(5)">Next →</button>
+    </div>
+  </div>
+
+  <!-- Step 6 -->
+  <div class="step" id="step6" style="display:none">
+    <div class="card">
+      <h2><span class="badge">6</span>Trade Preference</h2>
+      <div class="field">
+        <label>How many Free Trade Agreements (FTAs) do you participate in?</label>
+        <input type="number" id="q_ftas" placeholder="e.g. 4" min="0" max="100">
+        <div class="hint">e.g. USMCA, EU-UK TCA, CPTPP, RCEP, etc.</div>
+      </div>
+      <div class="field">
+        <label>Do you manually determine country of origin for preferential trade?</label>
+        <div class="radio-group" id="q_origin">
+          <label class="radio-option" onclick="selectRadio('q_origin','Manual')"><input type="radio" value="Manual">Yes, fully manual</label>
+          <label class="radio-option" onclick="selectRadio('q_origin','Partial')"><input type="radio" value="Partial">Partially automated</label>
+          <label class="radio-option" onclick="selectRadio('q_origin','System')"><input type="radio" value="System">System-managed</label>
+          <label class="radio-option" onclick="selectRadio('q_origin','NoClaim')"><input type="radio" value="NoClaim">We don't claim preferences</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>Estimated total annual import duty spend (<span class="cur-label">USD</span>)</label>
+        <select id="q_duty_spend">
+          <option value="">— Select —</option>
+          <option value="<$500K">Under $500K</option>
+          <option value="$500K–$2M">$500K – $2M</option>
+          <option value="$2M–$10M">$2M – $10M</option>
+          <option value="$10M–$50M">$10M – $50M</option>
+          <option value=">$50M">Over $50M</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Do you claim duty drawback or inward processing relief?</label>
+        <div class="radio-group" id="q_drawback">
+          <label class="radio-option" onclick="selectRadio('q_drawback','Systematic')"><input type="radio" value="Systematic">Yes, systematically</label>
+          <label class="radio-option" onclick="selectRadio('q_drawback','Occasionally')"><input type="radio" value="Occasionally">Occasionally</label>
+          <label class="radio-option" onclick="selectRadio('q_drawback','Eligible')"><input type="radio" value="Eligible">No, but eligible</label>
+          <label class="radio-option" onclick="selectRadio('q_drawback','No')"><input type="radio" value="No">No</label>
+        </div>
+      </div>
+    </div>
+    <div class="nav-row">
+      <button class="btn btn-secondary" onclick="goBack(6)">← Back</button>
+      <span class="step-indicator">Step 6 of 7</span>
+      <button class="btn btn-primary" onclick="goNext(6)">Next →</button>
+    </div>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="step" id="step2" style="display:none">
+    <div class="card">
+      <h2><span class="badge">2</span>Product Classification</h2>
+      <div class="field">
+        <label>Approximate number of active material/product SKUs</label>
+        <select id="q_skus">
+          <option value="">— Select —</option>
+          <option value="<1K">Under 1,000</option>
+          <option value="1K–5K">1,000 – 5,000</option>
+          <option value="5K–20K">5,000 – 20,000</option>
+          <option value="20K–100K">20,000 – 100,000</option>
+          <option value=">100K">Over 100,000</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>How is classification currently managed?</label>
+        <div class="check-group" id="q_class_method">
+          <label class="check-option" onclick="toggleCheck(this)">Manual / spreadsheet</label>
+          <label class="check-option" onclick="toggleCheck(this)">ERP custom fields</label>
+          <label class="check-option" onclick="toggleCheck(this)">Third-party tool</label>
+          <label class="check-option" onclick="toggleCheck(this)">Customs broker classifies</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>Are you selling in multiple jurisdictions requiring different HS codes?</label>
+        <div class="radio-group" id="q_multi_hs">
+          <label class="radio-option" onclick="selectRadio('q_multi_hs','Yes')"><input type="radio" value="Yes">Yes</label>
+          <label class="radio-option" onclick="selectRadio('q_multi_hs','No')"><input type="radio" value="No">No</label>
+          <label class="radio-option" onclick="selectRadio('q_multi_hs','Unsure')"><input type="radio" value="Unsure">Unsure</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>How often do you review / update product classifications?</label>
+        <div class="radio-group" id="q_class_review">
+          <label class="radio-option" onclick="selectRadio('q_class_review','Continuously')"><input type="radio" value="Continuously">Continuously</label>
+          <label class="radio-option" onclick="selectRadio('q_class_review','Annually')"><input type="radio" value="Annually">Annually</label>
+          <label class="radio-option" onclick="selectRadio('q_class_review','OnChange')"><input type="radio" value="OnChange">When regulations change</label>
+          <label class="radio-option" onclick="selectRadio('q_class_review','Rarely')"><input type="radio" value="Rarely">Rarely / Never</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>Have you experienced misclassification penalties or customs holds?</label>
+        <div class="radio-group" id="q_misclass">
+          <label class="radio-option" onclick="selectRadio('q_misclass','Yes')"><input type="radio" value="Yes">Yes, significant cost</label>
+          <label class="radio-option" onclick="selectRadio('q_misclass','Minor')"><input type="radio" value="Minor">Minor incidents</label>
+          <label class="radio-option" onclick="selectRadio('q_misclass','No')"><input type="radio" value="No">No</label>
+          <label class="radio-option" onclick="selectRadio('q_misclass','Unsure')"><input type="radio" value="Unsure">Unsure</label>
+        </div>
+      </div>
+    </div>
+    <div class="nav-row">
+      <button class="btn btn-secondary" onclick="goBack(2)">← Back</button>
+      <span class="step-indicator">Step 2 of 7</span>
+      <button class="btn btn-primary" onclick="goNext(2)">Next →</button>
+    </div>
+  </div>
+
+  <!-- Step 7 -->
+  <div class="step" id="step7" style="display:none">
+    <div class="card">
+      <h2><span class="badge">7</span>Strategic Context &amp; Goals</h2>
+      <div class="field">
+        <label>Are you planning to expand into new markets in the next 2 years?</label>
+        <div class="radio-group" id="q_expansion">
+          <label class="radio-option" onclick="selectRadio('q_expansion','Yes')"><input type="radio" value="Yes">Yes, actively planning</label>
+          <label class="radio-option" onclick="selectRadio('q_expansion','Maybe')"><input type="radio" value="Maybe">Possibly</label>
+          <label class="radio-option" onclick="selectRadio('q_expansion','No')"><input type="radio" value="No">No</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>What are your top trade compliance pain points? (select all that apply)</label>
+        <div class="check-group" id="q_painpoints">
+          <label class="check-option" onclick="toggleCheck(this)">Manual classification errors</label>
+          <label class="check-option" onclick="toggleCheck(this)">Missed FTA savings</label>
+          <label class="check-option" onclick="toggleCheck(this)">Denied party screening gaps</label>
+          <label class="check-option" onclick="toggleCheck(this)">Customs delays &amp; holds</label>
+          <label class="check-option" onclick="toggleCheck(this)">License management complexity</label>
+          <label class="check-option" onclick="toggleCheck(this)">Audit readiness</label>
+          <label class="check-option" onclick="toggleCheck(this)">Data scattered across systems</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>What is your target payback period for this investment?</label>
+        <div class="radio-group" id="q_payback">
+          <label class="radio-option" onclick="selectRadio('q_payback','<12m')"><input type="radio" value="<12m">Under 12 months</label>
+          <label class="radio-option" onclick="selectRadio('q_payback','12-24m')"><input type="radio" value="12-24m">12 – 24 months</label>
+          <label class="radio-option" onclick="selectRadio('q_payback','24-36m')"><input type="radio" value="24-36m">24 – 36 months</label>
+          <label class="radio-option" onclick="selectRadio('q_payback','Flexible')"><input type="radio" value="Flexible">Flexible — ROI driven</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>When are you targeting go-live?</label>
+        <div class="radio-group" id="q_golive">
+          <label class="radio-option" onclick="selectRadio('q_golive','<6m')"><input type="radio" value="<6m">Within 6 months</label>
+          <label class="radio-option" onclick="selectRadio('q_golive','6-12m')"><input type="radio" value="6-12m">6 – 12 months</label>
+          <label class="radio-option" onclick="selectRadio('q_golive','12-18m')"><input type="radio" value="12-18m">12 – 18 months</label>
+          <label class="radio-option" onclick="selectRadio('q_golive','18m+')"><input type="radio" value="18m+">18+ months</label>
+          <label class="radio-option" onclick="selectRadio('q_golive','Evaluating')"><input type="radio" value="Evaluating">Still evaluating</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>Estimated annual SAP GTS license cost (<span class="cur-label">USD</span>)</label>
+        <input type="number" id="q_lic_cost" placeholder="e.g. 250000" min="0">
+        <div class="hint">Enter the total annual license/subscription cost you have been quoted, or leave blank to exclude from ROI slide.</div>
+      </div>
+      <div class="field">
+        <label>Any additional context or notes for the presentation</label>
+        <textarea id="q_notes" placeholder="e.g. We are currently being audited by customs, we have a planned expansion to Asia-Pacific..."></textarea>
+      </div>
+    </div>
+    <div class="nav-row">
+      <button class="btn btn-secondary" onclick="goBack(7)">← Back</button>
+      <span class="step-indicator">Step 7 of 7</span>
+      <button class="btn btn-success" onclick="generateDeck()">Generate Presentation ▶</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ DECK ═══════════════════════════════════════ -->
+<div id="deck">
+  <div class="deck-toolbar">
+    <span class="sap-logo"><span class="logo-box" style="font-size:14px;padding:3px 8px">SAP</span></span>
+    <span class="title" id="deckTitle">Business Case — SAP GTS</span>
+    <div class="slide-nav">
+      <span id="slideCount"></span>
+      <button onclick="window.print()">🖨 Print / Export PDF</button>
+      <button onclick="restartQuestionnaire()">← New Build</button>
+    </div>
+  </div>
+  <div class="slides-container" id="slidesContainer"></div>
+</div>
+
+<script>
+// ─── State ───
+const D = {};  // collected answers
+
+// Currency config — symbol + scale thresholds
+const CURRENCIES = {
+  USD: { symbol:'$',  code:'USD' },
+  EUR: { symbol:'€',  code:'EUR' },
+  GBP: { symbol:'£',  code:'GBP' },
+  JPY: { symbol:'¥',  code:'JPY', noDecimals:true },
+  CHF: { symbol:'CHF ', code:'CHF' },
+  CAD: { symbol:'C$', code:'CAD' },
+  AUD: { symbol:'A$', code:'AUD' },
+  SGD: { symbol:'S$', code:'SGD' },
+  INR: { symbol:'₹',  code:'INR' },
+  CNY: { symbol:'¥',  code:'CNY' },
+  BRL: { symbol:'R$', code:'BRL' },
+  MXN: { symbol:'MX$', code:'MXN' },
+};
+let CUR = CURRENCIES.USD;
+
+function onCurrencyChange() {
+  const code = document.getElementById('q_currency').value;
+  CUR = CURRENCIES[code] || CURRENCIES.USD;
+  document.querySelectorAll('.cur-label').forEach(el => el.textContent = CUR.code);
+}
+
+function fmt(n) {
+  const s = CUR.symbol;
+  if (n >= 1e9) return s + (n/1e9).toFixed(1) + 'B';
+  if (n >= 1e6) return s + (n/1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return s + Math.round(n/1000) + 'K';
+  return s + Math.round(n).toLocaleString();
+}
+
+// SAP logo SVG (inline — works in print/PDF without network)
+const SAP_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 412.38 204"><defs><style>.sl1{fill:url(#slg);fill-rule:evenodd}.sl2{fill:#fff;fill-rule:evenodd}</style><linearGradient id="slg" x1="206.19" y1="0" x2="206.19" y2="204" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#00b1eb"/><stop offset=".212" stop-color="#009ad9"/><stop offset=".519" stop-color="#007fc4"/><stop offset=".792" stop-color="#006eb8"/><stop offset="1" stop-color="#0069b4"/></linearGradient></defs><polyline class="sl1" points="0 204 208.413 204 412.38 0 0 0 0 204"/><path class="sl2" d="m244.727,38.359l-40.593-.025v96.518l-35.46-96.518h-35.16l-30.277,80.716c-3.224-20.352-24.277-27.38-40.84-32.649-10.937-3.512-22.541-8.678-22.434-14.387.091-4.687,6.225-9.04,18.377-8.385,8.17.433,15.373,1.092,29.71,8.006l14.102-24.557c-13.088-6.658-31.169-10.867-45.985-10.883h-.086c-17.277,0-31.677,5.598-40.602,14.824-6.221,6.443-9.572,14.626-9.712,23.679-.227,12.454,4.341,21.292,13.938,28.338,8.104,5.944,18.468,9.794,27.603,12.626,11.27,3.492,20.467,6.526,20.36,13.002-.083,2.355-.977,4.552-2.671,6.337-2.807,2.897-7.124,3.986-13.084,4.098-11.497.243-20.026-1.559-33.61-9.585l-12.536,24.903c13.546,7.705,29.586,12.223,45.952,12.223l2.106-.024c14.247-.256,25.745-4.316,34.929-11.712.527-.416,1.001-.845,1.488-1.277l-4.073,10.874h36.875l6.189-18.822c6.477,2.214,13.847,3.437,21.676,3.437,7.618,0,14.795-1.17,21.156-3.252l5.965,18.637h60.137v-38.969h13.113c31.706,0,50.456-16.147,50.456-43.202,0-30.139-18.219-43.969-57.011-43.969Zm-93.816,82.587c-4.737,0-9.177-.828-13.006-2.275l12.866-40.593h.244l12.643,40.708c-3.801,1.349-8.138,2.16-12.746,2.16Zm96.199-23.324h-8.941v-32.711h8.941c11.927,0,21.437,3.961,21.437,16.139,0,12.602-9.51,16.572-21.437,16.572"/></svg>`;
+const SAP_DATA_URL = 'data:image/svg+xml;base64,' + btoa(SAP_SVG);
+
+function goStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.style.display = 'none');
+  document.getElementById('step' + n).style.display = 'block';
+  const seq = getStepSequence();
+  const pos = seq.indexOf(n) + 1;
+  const total = seq.length;
+  document.getElementById('progressFill').style.width = Math.round(pos / total * 100) + '%';
+  const ind = document.querySelector('#step' + n + ' .step-indicator');
+  if (ind) ind.textContent = 'Step ' + pos + ' of ' + total;
+  window.scrollTo(0, 0);
+}
+
+function getStepSequence() {
+  const anySelected = ['compliance','customs','special','preference'].some(k =>
+    document.getElementById('scope_' + k) && document.getElementById('scope_' + k).classList.contains('selected'));
+  const steps = [1, 2];
+  if (!anySelected || document.getElementById('scope_compliance').classList.contains('selected')) steps.push(3);
+  if (!anySelected || document.getElementById('scope_customs').classList.contains('selected')) steps.push(4);
+  if (!anySelected || document.getElementById('scope_special').classList.contains('selected')) steps.push(5);
+  if (!anySelected || document.getElementById('scope_preference').classList.contains('selected')) steps.push(6);
+  steps.push(7);
+  return steps;
+}
+
+function goNext(n) { const seq = getStepSequence(); const i = seq.indexOf(n); if (i < seq.length - 1) goStep(seq[i + 1]); }
+function goBack(n) { const seq = getStepSequence(); const i = seq.indexOf(n); if (i > 0) goStep(seq[i - 1]); }
+
+function selectRadio(groupId, val) {
+  document.querySelectorAll('#' + groupId + ' .radio-option').forEach(el => {
+    el.classList.toggle('selected', el.querySelector('input').value === val);
+  });
+}
+
+function toggleS4Plan() {
+  const erp = getRadio('q_erp');
+  document.getElementById('q_s4plan_wrap').style.display = erp === 'ECC' ? 'block' : 'none';
+}
+
+function toggleCheck(el) { el.classList.toggle('selected'); }
+
+function toggleScope(key) {
+  const parent = document.getElementById('scope_' + key);
+  parent.classList.toggle('selected');
+  const subs = document.getElementById('scope_' + key + '_subs');
+  if (subs) {
+    if (parent.classList.contains('selected')) {
+      subs.style.display = 'block';
+    } else {
+      subs.style.display = 'none';
+      subs.querySelectorAll('.check-option').forEach(el => el.classList.remove('selected'));
+    }
+  }
+}
+
+function getRadio(groupId) {
+  const sel = document.querySelector('#' + groupId + ' .radio-option.selected');
+  return sel ? sel.querySelector('input').value : '';
+}
+
+function getChecks(groupId) {
+  return Array.from(document.querySelectorAll('#' + groupId + ' .check-option.selected'))
+    .map(el => el.textContent.trim());
+}
+
+function restartQuestionnaire() {
+  document.getElementById('deck').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  goStep(1);
+}
+
+// ─── Data Collection ───
+function collectAnswers() {
+  D.company       = document.getElementById('q_company').value.trim() || 'Your Company';
+  D.currency      = document.getElementById('q_currency').value || 'USD';
+  CUR             = CURRENCIES[D.currency] || CURRENCIES.USD;
+  D.companyLogo   = null;
+  D.industry      = document.getElementById('q_industry').value || 'Manufacturing';
+  D.revenue       = document.getElementById('q_revenue').value || '$500M–$1B';
+  D.erp           = getRadio('q_erp') || 'ECC';
+  D.s4plan        = getRadio('q_s4plan') || '1-2yr';
+  D.controlled    = getRadio('q_controlled') || 'Unsure';
+  D.regimes       = getChecks('q_regimes');
+  D.users         = parseInt(document.getElementById('q_users').value) || 5;
+  D.customsUsers  = parseInt(document.getElementById('q_customs_users').value) || 5;
+  D.team          = getRadio('q_team') || 'Shared';
+  D.screening     = getChecks('q_screening');
+  D.screenVol     = parseInt(document.getElementById('q_screen_vol').value) || 0;
+  D.licenses      = document.getElementById('q_licenses').value || 'None';
+  D.countries     = parseInt(document.getElementById('q_countries').value) || 10;
+  D.exports       = parseInt(document.getElementById('q_exports').value) || 2000;
+  D.imports       = parseInt(document.getElementById('q_imports').value) || 3000;
+  D.transit       = parseInt(document.getElementById('q_transit').value) || 500;
+  D.brokerCost    = parseInt(document.getElementById('q_broker_cost').value) || 90;
+  D.broker        = getRadio('q_broker') || 'Some';
+  D.penalties     = getRadio('q_penalties') || 'No';
+  D.automation    = document.getElementById('q_automation').value || '<25%';
+  D.procedures    = getChecks('q_procedures');
+  D.bonded        = D.procedures.includes('Bonded Warehouse') ? 'Yes' : 'No';
+  D.ftz           = D.procedures.includes('Free Trade Zone (FTZ)') ? 'Yes' : 'No';
+  D.ftas          = parseInt(document.getElementById('q_ftas').value) || 2;
+  D.dutySpend     = document.getElementById('q_duty_spend').value || '$2M–$10M';
+  D.drawback      = getRadio('q_drawback') || 'No';
+  D.origin        = getRadio('q_origin') || 'Manual';
+  D.skus          = document.getElementById('q_skus').value || '5K–20K';
+  D.classMethod   = getChecks('q_class_method');
+  D.multiHs       = getRadio('q_multi_hs') || 'Yes';
+  D.classReview   = getRadio('q_class_review') || 'Annually';
+  D.misclass      = getRadio('q_misclass') || 'Unsure';
+  D.expansion     = getRadio('q_expansion') || 'Maybe';
+  D.painPoints    = getChecks('q_painpoints');
+  D.payback       = getRadio('q_payback') || '12-24m';
+  D.golive        = getRadio('q_golive') || '6-12m';
+  D.notes         = document.getElementById('q_notes').value.trim();
+  D.licCost       = parseInt(document.getElementById('q_lic_cost').value) || 0;
+
+  D.scopeModules  = ['compliance','customs','special','preference','intrastat'].filter(k =>
+    document.getElementById('scope_' + k) && document.getElementById('scope_' + k).classList.contains('selected')
+  );
+  D.scopeSubs     = {};
+  ['compliance','customs','special'].forEach(k => {
+    const panel = document.getElementById('scope_' + k + '_subs');
+    if (panel) D.scopeSubs[k] = Array.from(panel.querySelectorAll('.check-option.selected')).map(el => el.textContent.trim());
+  });
+
+  // Derived
+  D.totalDecl     = D.exports + D.imports + D.transit;
+  D.brokerDecl    = D.broker === 'All' ? D.totalDecl : D.broker === 'Some' ? Math.round(D.totalDecl * 0.6) : 0;
+  D.brokerSpend   = D.brokerDecl * D.brokerCost;
+  D.brokerSaving  = Math.round(D.brokerSpend * 0.35); // 35% reduction typical
+
+  // Duty spend midpoints
+  const dutyMap = {'<$500K':300000,'$500K–$2M':1250000,'$2M–$10M':6000000,'$10M–$50M':30000000,'>$50M':75000000};
+  D.dutyMid = dutyMap[D.dutySpend] || 6000000;
+  // FTA saving: 15–30% of duties on eligible spend
+  const ftaPct = Math.min(0.08 + D.ftas * 0.03, 0.30);
+  D.ftaSaving = Math.round(D.dutyMid * ftaPct);
+  // Special procedures saving (bonded/FTZ duty deferral / inward processing)
+  D.specialSaving = (D.bonded === 'Yes' || D.ftz === 'Yes') ? Math.round(D.dutyMid * 0.12) : 0;
+  D.totalDutySaving = D.ftaSaving + D.specialSaving;
+
+  // Compliance risk
+  const riskMap = {
+    'Aerospace & Defense': {max:1.1e9, ex:'Raytheon / RTX — $950M ITAR consent agreement (2022)'},
+    'Electronics & Technology': {max:300e6, ex:'Intel — $2.3B; Seagate Technology — $300M EAR (2023)'},
+    'Chemicals': {max:100e6, ex:'Honeywell — $13M EAR/OFAC; Zeon Chemicals — $9M (2019)'},
+    'Semiconductors': {max:300e6, ex:'Seagate Technology — $300M BIS EAR penalty (2023)'},
+    'Telecom & Network Equipment': {max:200e6, ex:'ZTE Corp — $1.19B OFAC/BIS (2018)'},
+    'Automotive': {max:50e6, ex:'General Motors — engine export violation $9.5M (2020)'},
+    'Energy & Oil/Gas': {max:200e6, ex:'Baker Hughes / GE Oil — $63M OFAC (2019)'},
+    'Life Sciences & Pharma': {max:50e6, ex:'Biomet — $22M FCPA/export (2017)'},
+    'Industrial Machinery': {max:30e6, ex:'Moog — $10M ITAR consent (2019)'},
+    'Manufacturing (General)': {max:25e6, ex:'General industry average penalty range $1M–$25M'},
+    'Retail & Consumer Goods': {max:15e6, ex:'OFAC/CBP violations typically $1M–$15M'},
+  };
+  D.risk = riskMap[D.industry] || {max:25e6, ex:'Typical enforcement penalty $1M–$25M'};
+
+  // SKU classification hours
+  const skuMap = {'<1K':800,'1K–5K':4000,'5K–20K':15000,'20K–100K':60000,'>100K':200000};
+  D.classHours = skuMap[D.skus] || 15000;
+  const hourlyRate = 85;
+  D.classLabor = D.classHours * hourlyRate;
+  D.classLaborSaving = Math.round(D.classLabor * 0.60); // GTS automates ~60%
+
+  // Process time savings
+  D.declTimeSaving = Math.round(D.totalDecl * 18 / 60 * hourlyRate * 0.45); // 18min/decl, 45% time save
+  D.complianceTimeSaving = Math.round(D.users * 250 * hourlyRate * 0.30); // 250 hrs/user/yr compliance overhead
+
+  // Total value & ROI
+  D.totalBenefit = D.brokerSaving + D.declTimeSaving + D.complianceTimeSaving + D.classLaborSaving + D.totalDutySaving;
+  D.netBenefit   = D.licCost > 0 ? D.totalBenefit - D.licCost : D.totalBenefit;
+  D.roi3yr       = D.licCost > 0 ? Math.round(((D.totalBenefit * 3 - D.licCost * 3) / (D.licCost * 3)) * 100) : null;
+  D.paybackMo    = D.licCost > 0 && D.totalBenefit > 0 ? Math.round((D.licCost / D.totalBenefit) * 12) : null;
+}
+
+// ─── Slide Builder ───
+let slideIndex = 0;
+function makeSlide(html, cls) {
+  slideIndex++;
+  return `<div class="slide ${cls || 'slide-content'}">
+    ${html}
+    <div class="footer-bar">
+      <div style="display:flex;align-items:center;gap:8px">
+        <img class="footer-sap-logo" src="${SAP_DATA_URL}" alt="SAP">
+        <span style="color:rgba(255,255,255,.4);font-size:10px">|</span>
+        <span style="color:rgba(255,255,255,.8);font-size:11px;font-weight:600">${D.company}</span>
+      </div>
+      <span style="color:rgba(255,255,255,.7);font-size:11px">SAP GTS — Business Case</span>
+      <span class="slide-num">${slideIndex}</span>
+    </div>
+  </div>`;
+}
+
+function coverSlide() {
+  const date = new Date().toLocaleDateString('en-GB', {year:'numeric',month:'long'});
+  return makeSlide(`
+    <div class="cover-logo-corner">
+      <img class="sap-svg" src="${SAP_DATA_URL}" alt="SAP">
+    </div>
+    <div class="eyebrow">Business Case Presentation</div>
+    <h1>SAP Global Trade Services<br>Edition for HANA</h1>
+    <div class="sub">Value Case &amp; Return on Investment Analysis</div>
+    <div class="company-tag">Prepared for: <strong>${D.company}</strong> &nbsp;|&nbsp; ${D.industry} &nbsp;|&nbsp; ${date}</div>
+  `, 'slide-cover');
+}
+
+function disclaimerSlide() {
+  return makeSlide(`
+    <div class="slide-title" style="border-color:var(--sap-gray)">Important Disclaimer</div>
+    <div style="display:flex;flex-direction:column;gap:16px;margin-top:4px">
+      <div style="background:#fff8e1;border-left:4px solid var(--sap-gold);padding:14px 18px;border-radius:0 8px 8px 0">
+        <div style="font-size:15px;font-weight:700;color:#5a4500;margin-bottom:4px">This output does not replace SAP's Value Advisory Service</div>
+        <div style="font-size:13px;color:#5a4500;line-height:1.6">This presentation is a self-service, directional tool. The figures shown are estimates based on industry benchmarks, publicly available enforcement data, and the inputs provided. They have not been validated through a formal discovery engagement or data extraction from your systems.</div>
+      </div>
+      <div class="two-col" style="gap:16px">
+        <div class="col-box">
+          <h4 style="color:var(--sap-green)">Appropriate Use</h4>
+          <ul class="bullet-list" style="margin-top:6px">
+            <li>Understand the key value levers of SAP GTS</li>
+            <li>Prepare for a Value Advisory conversation</li>
+            <li>Identify which areas warrant deeper analysis</li>
+            <li>Internal directional alignment and scoping</li>
+          </ul>
+        </div>
+        <div class="col-box">
+          <h4 style="color:var(--sap-red)">Not Intended For</h4>
+          <ul class="bullet-list" style="margin-top:6px">
+            <li>Budget commitment or procurement decisions</li>
+            <li>Board or executive approval submissions</li>
+            <li>Representation of SAP-committed savings</li>
+            <li>Replacement of a co-signed business case</li>
+          </ul>
+        </div>
+      </div>
+      <div style="background:var(--sap-light);border-radius:8px;padding:14px 18px">
+        <div style="font-size:12px;font-weight:700;color:var(--sap-gray);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">For a Robust, Defensible Business Case</div>
+        <div style="font-size:13px;color:#32363a;line-height:1.6">SAP's <strong>Value Advisory team</strong> conducts structured trade discovery workshops, analyses your actual transaction data and duty spend, applies validated SAP reference customer benchmarks, and produces a co-signed business case with full assumption traceability — suitable for executive approval.</div>
+      </div>
+    </div>
+  `);
+}
+
+function agendaSlide() {
+  return makeSlide(`
+    <div class="slide-title">Agenda</div>
+    <div class="two-col" style="gap:16px">
+      <div class="col-box">
+        <h4 style="color:var(--sap-blue)">01 — Product Classification</h4>
+        <ul class="bullet-list" style="margin-top:8px">
+          <li>Classification challenges &amp; cost of errors</li>
+          <li>GTS classification workbench value</li>
+        </ul>
+      </div>
+      <div class="col-box">
+        <h4 style="color:var(--sap-red)">02 — Compliance</h4>
+        <ul class="bullet-list" style="margin-top:8px">
+          <li>Regulatory exposure for ${D.industry}</li>
+          <li>Sanctioned party &amp; embargo management</li>
+        </ul>
+      </div>
+      <div class="col-box">
+        <h4 style="color:var(--sap-green)">03 — Customs</h4>
+        <ul class="bullet-list" style="margin-top:8px">
+          <li>Declaration volume &amp; broker cost reduction</li>
+          <li>Customs connection &amp; automation</li>
+        </ul>
+      </div>
+      <div class="col-box">
+        <h4 style="color:var(--sap-gold)">04 — Trade Preference &amp; Duty Savings</h4>
+        <ul class="bullet-list" style="margin-top:8px">
+          <li>FTA participation: ${D.ftas} agreement(s)</li>
+          <li>Special procedures — bonded/FTZ</li>
+        </ul>
+      </div>
+    </div>
+    <div class="note-box" style="margin-top:16px">Also covers: Process Automation &amp; Efficiency Gains | Assumptions</div>
+  `);
+}
+
+// ── SECTION 1: Classification ──
+function sectionClassification() {
+  return makeSlide(`
+    <div class="num">01</div>
+    <h2>Product Classification</h2>
+    <div class="desc">Managing HS codes, export control classifications, and product master data accurately across ${D.countries} countries of operation</div>
+  `, 'slide-section');
+}
+
+function classificationValue1() {
+  const skuLabel = D.skus;
+  const savingFmt = fmt(D.classLaborSaving);
+  const laborFmt = fmt(D.classLabor);
+  return makeSlide(`
+    <div class="slide-title">Classification: The Hidden Cost</div>
+    <div class="kpi-row">
+      <div class="kpi-box"><div class="val">${skuLabel}</div><div class="label">Active SKUs to classify</div></div>
+      <div class="kpi-box red"><div class="val">~20–40%</div><div class="label">Industry mis-classification rate (manual)</div></div>
+      <div class="kpi-box gold"><div class="val">${laborFmt}</div><div class="label">Est. annual classification labor cost</div></div>
+      <div class="kpi-box green"><div class="val">${savingFmt}</div><div class="label">Potential annual saving with GTS</div></div>
+    </div>
+    <ul class="bullet-list">
+      <li><strong>Manual classification is error-prone:</strong> Industry studies show 20–40% of manually classified products contain errors, leading to overpaid duties, customs delays, or penalties.
+        <span class="sub-note">Source: PwC Global Trade Study 2022 / KPMG Customs Benchmarking</span></li>
+      <li><strong>HS code divergence:</strong> With ${D.countries} active countries, each jurisdiction maintains its own tariff schedule — GTS centralises this into a single classification workbench.
+        <span class="sub-note">GTS supports CN, HTS, CCT, and country-specific schedules in one product master</span></li>
+      <li><strong>Export control classification (ECCN/ML):</strong> Manual ECCN determination for ${skuLabel} SKUs creates significant compliance exposure ${D.controlled === 'Yes' ? '— especially given your confirmed dual-use/military product portfolio.' : '.'}
+        <span class="sub-note">GTS integrates ECCN with SPL screening and license determination automatically</span></li>
+      <li><strong>New product introduction speed:</strong> GTS reduces time-to-classify new products by up to 70% via classification proposals, rules-based engines, and classification cockpit workflows.
+        <span class="sub-note">SAP GTS Help — Classification Workbench / Classification Proposals</span></li>
+    </ul>
+  `);
+}
+
+function classificationValue2() {
+  return makeSlide(`
+    <div class="slide-title">GTS Classification Workbench — Key Capabilities</div>
+    <div class="two-col">
+      <div>
+        <ul class="bullet-list">
+          <li><strong>Centralised product master:</strong> One HS/HTS/ECCN classification per material, reused across all SAP transactions — no duplicate effort per shipment.</li>
+          <li><strong>Classification proposals:</strong> GTS suggests HS codes based on existing data patterns and similar products, reducing manual research time by 50–70%.</li>
+          <li><strong>Multi-country tariff management:</strong> Maintain parallel classification numbers (CN, HTS, TARIC) for different destination countries in a single master record.</li>
+          <li><strong>Audit trail &amp; validity control:</strong> Every classification change is versioned with user, date, and reason — essential for customs audits.</li>
+        </ul>
+      </div>
+      <div>
+        <ul class="bullet-list">
+          <li><strong>Automated classification workflow:</strong> Route new or changed products to subject matter experts with deadline tracking and approval management.</li>
+          <li><strong>Integration with export licence determination:</strong> ECCN/AL number drives automatic license checks at order entry, eliminating last-minute holds.</li>
+          <li><strong>Preference classification:</strong> GTS manages origin data at component level to calculate preferential origin for finished goods — feeding directly into certificate of origin issuance.</li>
+          <li><strong>Sanction list &amp; embargo linkage:</strong> Product classification feeds directly into embargo checks — certain HS codes trigger automatic review before export approval.</li>
+        </ul>
+        <div class="note-box">GTS Classification is the foundation for Compliance, Customs, and Preference — errors here cascade downstream.</div>
+      </div>
+    </div>
+  `);
+}
+
+// ── SECTION 2: Compliance ──
+function sectionCompliance() {
+  return makeSlide(`
+    <div class="num">02</div>
+    <h2>Trade Compliance</h2>
+    <div class="desc">Managing sanctioned party screening, embargo management, and export licence determination for ${D.controlled === 'Yes' ? 'export-controlled products across ' + D.countries + ' countries' : D.countries + ' countries of operation'}</div>
+  `, 'slide-section');
+}
+
+function complianceRisk() {
+  const regimeStr = D.regimes.length > 0 ? D.regimes.join(', ') : 'export control regulations';
+  const maxFine = fmt(D.risk.max);
+  return makeSlide(`
+    <div class="slide-title red">Compliance Risk Exposure — ${D.industry}</div>
+    <div class="kpi-row">
+      <div class="kpi-box red"><div class="val">Up to ${maxFine}</div><div class="label">Max single enforcement penalty — ${D.industry}</div></div>
+      <div class="kpi-box gold"><div class="val">${D.countries}</div><div class="label">Jurisdictions requiring SPL screening</div></div>
+      <div class="kpi-box red"><div class="val">${D.exports.toLocaleString()}</div><div class="label">Export transactions per year at risk</div></div>
+    </div>
+    <div class="fine-example">
+      <strong>Industry Precedent (USD):</strong> ${D.risk.ex}
+    </div>
+    ${D.controlled === 'Yes' ? `<div class="fine-example">
+      <strong>Export Violation Risk (${regimeStr}):</strong> Under EAR, violations carry up to $1M per transaction or twice the transaction value (whichever is greater). ITAR violations: up to $1.3M per violation. With ${D.exports.toLocaleString()} annual export transactions, a single undetected controlled shipment to a restricted party creates material legal exposure.
+    </div>` : ''}
+    <ul class="bullet-list" style="margin-top:12px">
+      <li><strong>Restricted party &amp; SDN screening gaps:</strong> Manual or periodic screening leaves exposure windows. GTS performs real-time screening at order entry, delivery creation, and billing — across OFAC SDN, BIS Entity List, EU Consolidated List, and 200+ more.
+        <span class="sub-note">SAP GTS SPL screening covers 250+ government and commercial watchlists</span></li>
+      <li><strong>False positive burden:</strong> Without intelligent fuzzy matching, compliance teams spend 60–80% of their time clearing false positives. GTS scoring algorithms reduce false positives by up to 40%.
+        <span class="sub-note">Aberdeen Group: GTS customers report 35–55% reduction in compliance processing time</span></li>
+      <li><strong>Embargo &amp; country-of-destination checks:</strong> With ${D.countries} active countries, manual embargo tracking is impractical. GTS automates country-level checks at transaction level.</li>
+    </ul>
+  `);
+}
+
+function complianceGTS() {
+  return makeSlide(`
+    <div class="slide-title red">How GTS Eliminates Compliance Exposure</div>
+    <div class="two-col">
+      <div>
+        <div class="col-box" style="margin-bottom:12px">
+          <h4>Real-Time SPL Screening</h4>
+          <ul class="bullet-list">
+            <li>Integrated at SD order entry, delivery, billing, and MM purchase orders</li>
+            <li>Checks business partners against 250+ lists including OFAC SDN, EU, UN, BIS</li>
+            <li>Configurable hold &amp; workflow escalation for manual review</li>
+          </ul>
+        </div>
+        <div class="col-box">
+          <h4>Export Licence Management</h4>
+          <ul class="bullet-list">
+            <li>Automatic licence determination based on ECCN + country + end-user</li>
+            <li>Licence consumption tracking with balance management</li>
+            <li>Proactive expiry alerts before shipments are blocked</li>
+          </ul>
+        </div>
+      </div>
+      <div>
+        <div class="col-box" style="margin-bottom:12px">
+          <h4>Embargo &amp; Legal Control</h4>
+          <ul class="bullet-list">
+            <li>Country-of-destination embargo checks updated via SAP content (CLD)</li>
+            <li>Re-export control: tracks US-origin content rules (de minimis, foreign-produced direct product)</li>
+            <li>Technology transfer controls for technical data exports</li>
+          </ul>
+        </div>
+        <div class="col-box">
+          <h4>Compliance Cockpit &amp; Audit</h4>
+          <ul class="bullet-list">
+            <li>Full audit trail: who screened, when, which list, result</li>
+            <li>Blocked shipment management with reason codes</li>
+            <li>Periodic re-screening of existing business partner base</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="note-box">GTS compliance checks are embedded <em>inside</em> SAP business processes — no separate tool login, no manual export to CSV. Compliance happens at the point of transaction, not after the fact.</div>
+  `);
+}
+
+// ── SECTION 3: Customs ──
+function sectionCustoms() {
+  return makeSlide(`
+    <div class="num">03</div>
+    <h2>Customs &amp; Special Procedures</h2>
+    <div class="desc">Automating ${D.totalDecl.toLocaleString()} annual declarations across ${D.countries} countries — reducing broker dependency and accelerating customs clearance</div>
+  `, 'slide-section');
+}
+
+function customsValue1() {
+  const brokerFmt = fmt(D.brokerSpend);
+  const saveFmt   = fmt(D.brokerSaving);
+  const gtsLicEstimate = D.totalDecl < 5000 ? '$120K–$180K' : D.totalDecl < 15000 ? '$180K–$300K' : '$300K–$600K';
+  return makeSlide(`
+    <div class="slide-title green">Customs: Volume &amp; Cost Baseline</div>
+    <div class="kpi-row">
+      <div class="kpi-box"><div class="val">${D.exports.toLocaleString()}</div><div class="label">Export declarations / year</div></div>
+      <div class="kpi-box"><div class="val">${D.imports.toLocaleString()}</div><div class="label">Import declarations / year</div></div>
+      <div class="kpi-box"><div class="val">${D.transit.toLocaleString()}</div><div class="label">Transit declarations / year</div></div>
+      <div class="kpi-box red"><div class="val">${brokerFmt}</div><div class="label">Est. annual broker fees (current)</div></div>
+    </div>
+    <div class="table-wrap">
+      <table class="comp">
+        <thead><tr><th>Cost Driver</th><th>Current State</th><th>With GTS</th><th>Annual Saving</th></tr></thead>
+        <tbody>
+          <tr><td>Customs broker fees (${D.broker})</td><td>${brokerFmt}</td><td>${fmt(D.brokerSpend - D.brokerSaving)}</td><td class="highlight">${saveFmt}</td></tr>
+          <tr><td>Declaration manual preparation time</td><td>~18–25 min/declaration</td><td>~5–8 min/declaration</td><td class="highlight">${fmt(D.declTimeSaving)}</td></tr>
+          <tr><td>Duty errors &amp; overpayments (est. 3–5%)</td><td>${fmt(D.dutyMid * 0.04)}</td><td>${fmt(D.dutyMid * 0.01)}</td><td class="highlight">${fmt(D.dutyMid * 0.03)}</td></tr>
+          <tr><td>Demurrage &amp; delay costs (customs holds)</td><td>Variable / high</td><td>Significantly reduced</td><td class="highlight">Qualitative</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note-box">SAP GTS Customs Connection (licensed separately or as part of GTS HANA edition) enables direct self-filing and broker integrations in 50+ countries, replacing manual broker submission for a significant portion of declarations.</div>
+  `);
+}
+
+function customsValue2() {
+  const special = [];
+  if (D.bonded === 'Yes') special.push('Bonded Warehouse (customs warehouse, inward processing)');
+  if (D.ftz === 'Yes') special.push('Free Trade Zone management');
+  const specialText = special.length > 0 ? special.join(' and ') : 'Special Customs Procedures (if applicable in future)';
+  return makeSlide(`
+    <div class="slide-title green">GTS Customs Capabilities &amp; Special Procedures</div>
+    <div class="two-col">
+      <div>
+        <ul class="bullet-list">
+          <li><strong>Electronic customs filing:</strong> GTS generates and transmits customs declarations directly to government systems (AES, CHIEF/CDS, ATLAS, etc.) or via broker integrations — covering 50+ countries.
+            <span class="sub-note">Self-filing and broker integrations supported in 50+ countries</span></li>
+          <li><strong>Pre-built document generation:</strong> Commercial invoices, packing lists, certificates of origin, EUR.1, REX declarations — all auto-generated from SAP data.
+            <span class="sub-note">Eliminates 40–60% of customs document preparation time</span></li>
+          <li><strong>Duty calculation &amp; landed costs:</strong> GTS computes duties per declaration, feeding import condition types in MM — supporting more accurate landed cost and duty accrual processes.</li>
+          <li><strong>${specialText}:</strong> GTS tracks goods movements in and out of bonded/FTZ regimes, calculates suspended duty balances, and triggers automatic duty crystallisation when goods leave the regime.</li>
+        </ul>
+      </div>
+      <div>
+        <ul class="bullet-list">
+          <li><strong>Inward/Outward Processing Relief:</strong> GTS manages IP/OP authorisations, tracks material consumption, and calculates the specific commercial policy measures — recovering duties on exported finished goods.
+            <span class="sub-note">Typically 5–15% additional duty savings for manufacturers</span></li>
+          <li><strong>AEO &amp; trusted trader programmes:</strong> GTS supports AEO condition monitoring — helping ${D.company} maintain authorised economic operator status with faster customs clearance and reduced examination rates.</li>
+          <li><strong>Customs audit readiness:</strong> Complete declaration archive with entry/exit data, duty calculations, and document links — customs audits that previously took weeks can be handled in days.</li>
+          <li><strong>Import duty relief / CPC optimisation:</strong> GTS classifies each shipment to the most beneficial customs procedure code, ensuring maximum use of available reliefs.</li>
+        </ul>
+      </div>
+    </div>
+  `);
+}
+
+// ── SECTION 4: Preference & Duty ──
+function sectionPreference() {
+  return makeSlide(`
+    <div class="num">04</div>
+    <h2>Trade Preference &amp; Duty Savings</h2>
+    <div class="desc">Maximising FTA utilisation across ${D.ftas} agreement(s), automating preference determination, and managing certificates of origin for ${D.exports.toLocaleString()} annual exports</div>
+  `, 'slide-section');
+}
+
+function preferenceValue() {
+  const ftaSaveFmt = fmt(D.ftaSaving);
+  const specialSaveFmt = fmt(D.specialSaving);
+  const totalFmt = fmt(D.totalDutySaving);
+  return makeSlide(`
+    <div class="slide-title gold">Trade Preference: Unlocking Duty Savings</div>
+    <div class="kpi-row">
+      <div class="kpi-box gold"><div class="val">${D.ftas}</div><div class="label">Active FTAs to optimise</div></div>
+      <div class="kpi-box"><div class="val">${D.dutySpend}</div><div class="label">Annual duty spend baseline</div></div>
+      <div class="kpi-box green"><div class="val">${ftaSaveFmt}</div><div class="label">Est. FTA preference savings</div></div>
+      <div class="kpi-box green"><div class="val">${D.specialSaving > 0 ? specialSaveFmt : 'N/A'}</div><div class="label">Special procedures duty savings</div></div>
+    </div>
+    <ul class="bullet-list">
+      <li><strong>Missed preference is cash left on the table:</strong> Studies show 30–60% of qualifying imports never claim available FTA preference — primarily due to lack of automated origin determination.
+        <span class="sub-note">Source: Amber Road / E2open Global Trade Study; WTO FTA Utilization Research 2021</span></li>
+      <li><strong>Vendor declaration management:</strong> GTS automates the collection and validity tracking of long-term supplier declarations (LTSDs) — the foundation of EU preferential origin determination.
+        <span class="sub-note">GTS reminder workflows chase suppliers automatically before declarations expire</span></li>
+      <li><strong>Bill-of-materials origin calculation:</strong> GTS analyses each finished good's BOM components and their origin, applies the relevant rule of origin (tariff heading change, value-added test, specific process), and determines preference eligibility automatically.</li>
+      <li><strong>Certificate of origin issuance:</strong> GTS auto-generates EUR.1, Form A, REX statements, and country-specific certificates of origin — eliminating manual preparation and potential errors.
+        <span class="sub-note">Certificate errors can result in duty reclaim by importing customs authorities</span></li>
+    </ul>
+    <div style="background:#e8f5ee;border-radius:8px;padding:14px 18px;margin-top:8px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:14px;font-weight:600;color:#32363a">Estimated Total Annual Duty Savings</span>
+      <span style="font-size:28px;font-weight:700;color:var(--sap-green)">${totalFmt}</span>
+    </div>
+  `);
+}
+
+function preferenceSpecial() {
+  return makeSlide(`
+    <div class="slide-title gold">Special Procedures: Deferred &amp; Suspended Duties</div>
+    <div class="two-col">
+      <div>
+        <div class="col-box" style="margin-bottom:14px">
+          <h4>Bonded Warehouse / Customs Warehouse</h4>
+          <ul class="bullet-list">
+            <li>GTS tracks all stock movements in and out of the regime in real time</li>
+            <li>Duty payment deferred until goods enter free circulation — improving cash flow for high-duty goods</li>
+            <li>Automatic duty calculation and crystallisation on regime exit</li>
+            <li>Full HMRC/customs authority reporting generated automatically</li>
+          </ul>
+        </div>
+        <div class="col-box">
+          <h4>Inward Processing Relief (IPR)</h4>
+          <ul class="bullet-list">
+            <li>Tracks imported raw materials through manufacturing to exported finished goods</li>
+            <li>Calculates relief on duties that would otherwise apply to exported finished goods</li>
+            <li>Bill-of-exchange (BoE) and specific commercial policy measure management</li>
+          </ul>
+        </div>
+      </div>
+      <div>
+        <div class="col-box" style="margin-bottom:14px">
+          <h4>Free Trade Zone (FTZ) Management</h4>
+          <ul class="bullet-list">
+            <li>GTS manages FTZ inventory and duty-free status of goods within the zone</li>
+            <li>Tracks weekly entries for weekly entry filing programmes (US CBP)</li>
+            <li>Zone-to-zone transfers and zone admission/withdrawal processing</li>
+          </ul>
+        </div>
+        <div class="col-box">
+          <h4>Temporary Admission &amp; ATA Carnet</h4>
+          <ul class="bullet-list">
+            <li>Manages temporary export/import of goods for processing, repair, or exhibition</li>
+            <li>Tracks re-importation deadlines to avoid duty crystallisation</li>
+            <li>Integrates with logistics for automatic goods movement tracking</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="note-box">Each of these procedures requires precise tracking and timely filing — GTS makes compliance automatic rather than a manual burden on your ${D.users} trade team members.</div>
+  `);
+}
+
+// ── SECTION 5: Process Efficiency ──
+function efficiencySlide1() {
+  const totalSaving = D.brokerSaving + D.declTimeSaving + D.complianceTimeSaving + D.classLaborSaving + D.totalDutySaving;
+  return makeSlide(`
+    <div class="slide-title">Process Automation &amp; Efficiency Gains</div>
+    <div class="kpi-row">
+      <div class="kpi-box green"><div class="val">${fmt(D.brokerSaving + D.declTimeSaving)}</div><div class="label">Customs process savings / year</div></div>
+      <div class="kpi-box green"><div class="val">${fmt(D.classLaborSaving)}</div><div class="label">Classification labor savings / year</div></div>
+      <div class="kpi-box green"><div class="val">${fmt(D.complianceTimeSaving)}</div><div class="label">Compliance team efficiency gain</div></div>
+      <div class="kpi-box green"><div class="val">${fmt(D.totalDutySaving)}</div><div class="label">Duty savings / year</div></div>
+    </div>
+    <ul class="bullet-list">
+      <li><strong>End-to-end SAP integration:</strong> GTS is embedded in SAP ERP/S/4HANA — compliance checks, customs declarations, and preference calculations happen as part of existing business processes with no data re-entry.
+        <span class="sub-note">Eliminates the "swivel chair" between ERP and standalone trade tools — saving 30–60 minutes per declaration</span></li>
+      <li><strong>Automation of routine checks:</strong> Routine SPL screening, duty calculation, and document generation are 100% automated — your ${D.users} trade specialists focus on exception handling and value-add analysis instead.</li>
+      <li><strong>Reduced broker dependency:</strong> With GTS automation, ${D.company} can file declarations directly via the Customs Connection interface, reducing reliance on external brokers and retaining control.
+        <span class="sub-note">Typical customers bring 40–70% of declarations in-house within 18 months of go-live</span></li>
+      <li><strong>Year-1 ramp / learning curve:</strong> SAP Activate provides a structured, phase-gated path to go-live — timeline varies by scope and country complexity. Year 1 savings are typically 40–60% of steady-state as processes are activated progressively.</li>
+    </ul>
+    <div style="background:var(--sap-light);border-radius:8px;padding:14px 18px;margin-top:8px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:14px;font-weight:600">Estimated Total Annual Value (all pillars)</span>
+      <span style="font-size:28px;font-weight:700;color:var(--sap-green)">${fmt(totalSaving)}</span>
+    </div>
+  `);
+}
+
+function efficiencySlide2() {
+  return makeSlide(`
+    <div class="slide-title">Before vs. After — GTS Transformation</div>
+    <div class="table-wrap">
+      <table class="comp">
+        <thead>
+          <tr>
+            <th>Process</th>
+            <th>Before GTS (Current State)</th>
+            <th>After GTS (Future State)</th>
+            <th>Impact</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Restricted Party Screening</strong></td>
+            <td>Periodic batch / manual check</td>
+            <td>Real-time, every transaction, 250+ lists</td>
+            <td class="highlight">Eliminates compliance gap</td>
+          </tr>
+          <tr>
+            <td><strong>Export License Determination</strong></td>
+            <td>Manual ECCN lookup, spreadsheet tracking</td>
+            <td>Automatic at order entry, GTS determines license need</td>
+            <td class="highlight">70% time reduction</td>
+          </tr>
+          <tr>
+            <td><strong>Customs Declaration Filing</strong></td>
+            <td>Manual data entry to broker portal</td>
+            <td>Auto-generated from SAP, filed via Customs Connection</td>
+            <td class="highlight">60–75% cost reduction</td>
+          </tr>
+          <tr>
+            <td><strong>HS Code Classification</strong></td>
+            <td>Spreadsheet, per-shipment lookup</td>
+            <td>Centralised in SAP product master, auto-populated</td>
+            <td class="highlight">~60% labor saving</td>
+          </tr>
+          <tr>
+            <td><strong>Preference Determination</strong></td>
+            <td>Ad-hoc, manual BOM review</td>
+            <td>Automated origin calculation, auto CoO issuance</td>
+            <td class="highlight">Capture missed FTA savings</td>
+          </tr>
+          <tr>
+            <td><strong>Bonded Warehouse / FTZ</strong></td>
+            <td>Manual stock ledger, spreadsheet</td>
+            <td>Real-time inventory, automatic duty tracking</td>
+            <td class="highlight">Audit-ready at all times</td>
+          </tr>
+          <tr>
+            <td><strong>Customs Audit Response</strong></td>
+            <td>2–4 weeks to compile records</td>
+            <td>On-demand archive retrieval</td>
+            <td class="highlight">Days, not weeks</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  `);
+}
+
+// ── ROI Summary ──
+function roiSlide() {
+  const hasLic = D.licCost > 0;
+  const roiRows = [
+    { label: 'Customs broker fee reduction', val: D.brokerSaving },
+    { label: 'Declaration process time saving', val: D.declTimeSaving },
+    { label: 'Classification labor saving', val: D.classLaborSaving },
+    { label: 'Compliance team efficiency gain', val: D.complianceTimeSaving },
+    { label: 'FTA duty preference savings', val: D.ftaSaving },
+    { label: 'Special procedures duty savings', val: D.specialSaving },
+  ].filter(r => r.val > 0);
+
+  const rowsHtml = roiRows.map(r => `
+    <div class="saving-row">
+      <span class="saving-label">${r.label}</span>
+      <span class="saving-val">${fmt(r.val)}</span>
+    </div>`).join('');
+
+  const licRow = hasLic ? `
+    <div class="saving-row" style="border-top:2px solid #eee;margin-top:4px">
+      <span class="saving-label" style="color:var(--sap-red)">SAP GTS Annual License Cost</span>
+      <span style="font-weight:700;color:var(--sap-red)">−${fmt(D.licCost)}</span>
+    </div>
+    <div class="saving-row" style="background:var(--sap-light);padding:8px 6px;border-radius:6px;margin-top:4px">
+      <span style="font-weight:700">Net Annual Benefit</span>
+      <span style="font-weight:700;color:var(--sap-green);font-size:18px">${fmt(D.netBenefit)}</span>
+    </div>` : '';
+
+  const metricsHtml = hasLic ? `
+    <div class="kpi-row" style="margin-top:16px">
+      <div class="kpi-box green"><div class="val">${fmt(D.totalBenefit)}</div><div class="label">Total annual benefit</div></div>
+      <div class="kpi-box red"><div class="val">${fmt(D.licCost)}</div><div class="label">Annual license cost</div></div>
+      <div class="kpi-box green"><div class="val">${fmt(D.netBenefit)}</div><div class="label">Net annual benefit</div></div>
+      <div class="kpi-box gold"><div class="val">${D.paybackMo} mo</div><div class="label">Est. license payback period</div></div>
+      <div class="kpi-box green"><div class="val">${D.roi3yr}%</div><div class="label">3-year ROI (license only)</div></div>
+    </div>` : `
+    <div class="kpi-row" style="margin-top:16px">
+      <div class="kpi-box green"><div class="val">${fmt(D.totalBenefit)}</div><div class="label">Total estimated annual benefit</div></div>
+    </div>
+    <div class="note-box">License cost not entered — add your SAP GTS quote to see full ROI and payback metrics.</div>`;
+
+  return makeSlide(`
+    <div class="slide-title" style="border-color:var(--sap-green)">ROI Summary — SAP GTS for ${D.company}</div>
+    <div class="two-col" style="gap:24px">
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--sap-gray);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Annual Value Breakdown</div>
+        ${rowsHtml}
+        ${licRow}
+      </div>
+      <div>
+        ${metricsHtml.replace('<div class="kpi-row"','<div class="kpi-row" style="flex-direction:column;gap:10px"')}
+      </div>
+    </div>
+    <div class="note-box" style="margin-top:8px">ROI figures cover license cost only. Implementation and change management costs should be factored into a full business case. Savings are steady-state (Year 2+); Year 1 typically 40–60% of stated values.</div>
+  `);
+}
+
+// ── References ──
+function referencesSlide() {
+  return makeSlide(`
+    <div class="slide-title" style="border-color:var(--sap-gray)">References &amp; Sources</div>
+    <div class="two-col" style="gap:20px">
+      <div>
+        <div class="col-box" style="margin-bottom:12px">
+          <h4>SAP Product Documentation</h4>
+          <ul class="bullet-list" style="margin-top:4px">
+            <li style="font-size:12px">SAP GTS Help Portal — <a href="https://help.sap.com/docs/SAP_GTS" target="_blank">help.sap.com/docs/SAP_GTS</a></li>
+            <li style="font-size:12px">SAP GTS Product Page — <a href="https://www.sap.com/products/scm/global-trade-management.html" target="_blank">sap.com/products/scm/global-trade-management</a></li>
+            <li style="font-size:12px">SAP Customs Management (Customs Connection) — <a href="https://help.sap.com/docs/SAP_GTS" target="_blank">help.sap.com/docs/SAP_GTS</a></li>
+            <li style="font-size:12px">SAP Preference Processing Guide — <a href="https://help.sap.com/docs/SAP_GTS" target="_blank">help.sap.com/docs/SAP_GTS</a></li>
+          </ul>
+        </div>
+        <div class="col-box">
+          <h4>Regulatory &amp; Enforcement Sources</h4>
+          <ul class="bullet-list" style="margin-top:4px">
+            <li style="font-size:12px">U.S. BIS — Enforcement Actions: <a href="https://www.bis.doc.gov/index.php/enforcement/oce" target="_blank">bis.doc.gov/enforcement/oce</a></li>
+            <li style="font-size:12px">U.S. OFAC — Civil Penalties: <a href="https://ofac.treasury.gov/civil-penalties-and-enforcement-information" target="_blank">ofac.treasury.gov/civil-penalties</a></li>
+            <li style="font-size:12px">EU Dual-Use Export Controls: <a href="https://single-market-economy.ec.europa.eu/sectors/defence-industries/dual-use_en" target="_blank">ec.europa.eu/dual-use</a></li>
+            <li style="font-size:12px">WTO RTA Database: <a href="https://rtais.wto.org" target="_blank">rtais.wto.org</a></li>
+          </ul>
+        </div>
+      </div>
+      <div>
+        <div class="col-box" style="margin-bottom:12px">
+          <h4>Industry Research &amp; Benchmarks</h4>
+          <ul class="bullet-list" style="margin-top:4px">
+            <li style="font-size:12px">E2open Global Trade &amp; Tariff Impact Study: <a href="https://www.e2open.com/research" target="_blank">e2open.com/research</a></li>
+            <li style="font-size:12px">Aberdeen Group — Trade Compliance Benchmark Report</li>
+            <li style="font-size:12px">PwC Global Trade Management Study — <a href="https://www.pwc.com" target="_blank">pwc.com</a></li>
+            <li style="font-size:12px">KPMG Customs &amp; Trade Benchmarking Survey — <a href="https://www.kpmg.com" target="_blank">kpmg.com</a></li>
+          </ul>
+        </div>
+        <div class="col-box">
+          <h4>Tariff &amp; Classification Resources</h4>
+          <ul class="bullet-list" style="margin-top:4px">
+            <li style="font-size:12px">WCO — HS Nomenclature: <a href="https://www.wcoomd.org/en/topics/nomenclature.aspx" target="_blank">wcoomd.org/nomenclature</a></li>
+            <li style="font-size:12px">U.S. ITC — HTS Schedule: <a href="https://hts.usitc.gov" target="_blank">hts.usitc.gov</a></li>
+            <li style="font-size:12px">EU TARIC Database: <a href="https://ec.europa.eu/taxation_customs/dds2/taric" target="_blank">ec.europa.eu/taric</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="note-box" style="margin-top:8px">All enforcement case data sourced from public regulatory records. ROI benchmarks are industry estimates — actual results depend on scope, implementation quality, and operational maturity.</div>
+  `);
+}
+
+// ── Assumptions ──
+function assumptionsSlide() {
+  return makeSlide(`
+    <div class="slide-title" style="border-color:var(--sap-gray)">Assumptions &amp; Methodology</div>
+    <div class="two-col">
+      <div>
+        <ul class="assumption-list">
+          <li>Customs declaration volumes provided directly by ${D.company}: ${D.exports.toLocaleString()} exports, ${D.imports.toLocaleString()} imports, ${D.transit.toLocaleString()} transit per year</li>
+          <li>Broker cost per declaration assumed at ${fmt(D.brokerCost)}; SAP GTS Customs Connection achieves 35% broker fee reduction in Year 1, rising to 50–60% in Year 2–3</li>
+          <li>Classification labor: ${D.classHours.toLocaleString()} hrs/year at ${fmt(85)}/hr blended rate; GTS automates ~60% of classification workload</li>
+          <li>Compliance time saving: ${D.users} FTE × 250 overhead hrs/yr × ${fmt(85)}/hr × 30% efficiency gain</li>
+          <li>Duty spend mid-point used: ${D.dutySpend} band → ${fmt(D.dutyMid)} baseline</li>
+          <li>FTA preference saving: estimated at ${Math.min(8 + D.ftas * 3, 30)}% of duty spend (increases with each FTA managed in GTS); industry benchmark range 8–30%</li>
+          ${D.specialSaving > 0 ? `<li>Special procedures (${D.bonded==='Yes'?'bonded warehouse':''}${D.bonded==='Yes'&&D.ftz==='Yes'?' + ':''}${D.ftz==='Yes'?'FTZ':''}): 12% duty saving assumption on applicable duty spend</li>` : ''}
+          <li>Industry fine precedents sourced from public enforcement records (BIS, OFAC, DOJ). Max fine shown is a precedent, not a prediction.</li>
+        </ul>
+      </div>
+      <div>
+        <ul class="assumption-list">
+          <li>SAP GTS HANA edition licence costs vary by scope, users, and commercial negotiation — ROI model uses operational savings only; licence cost to be validated with SAP/partner quote</li>
+          <li>Implementation cost excluded from this ROI model — typical GTS implementations range from USD 300K (single country, small scope) to USD 2M+ (multi-country, full scope); payback periods of 12–30 months are common</li>
+          <li>All figures displayed in ${D.currency} (${CUR.symbol}) as selected in the questionnaire</li>
+          <li>Savings are annual steady-state (Year 2+); Year 1 savings are typically 40–60% of stated figures due to implementation timeline</li>
+          <li>Figures are estimates based on industry benchmarks and data provided — detailed discovery will refine the business case</li>
+          <li>Sources: SAP GTS Help Documentation, PwC/KPMG Global Trade Studies, Aberdeen Group, E2open Global Trade Benchmark, BIS/OFAC public enforcement records</li>
+        </ul>
+        <div class="note-box" style="margin-top:12px">This presentation is a directional value case tool. A detailed business case should be completed with SAP and an implementation partner following a trade discovery workshop.</div>
+      </div>
+    </div>
+  `);
+}
+
+// ─── Generate ───
+function generateDeck() {
+  collectAnswers();
+  slideIndex = 0;
+
+  const slides = [
+    coverSlide(),
+    disclaimerSlide(),
+    agendaSlide(),
+    sectionClassification(),
+    classificationValue1(),
+    classificationValue2(),
+    sectionCompliance(),
+    complianceRisk(),
+    complianceGTS(),
+    sectionCustoms(),
+    customsValue1(),
+    customsValue2(),
+    sectionPreference(),
+    preferenceValue(),
+    preferenceSpecial(),
+    efficiencySlide1(),
+    efficiencySlide2(),
+    roiSlide(),
+    assumptionsSlide(),
+    referencesSlide(),
+  ];
+
+  document.getElementById('slidesContainer').innerHTML = slides.join('');
+  document.getElementById('deckTitle').textContent = `Business Case — SAP GTS | ${D.company}`;
+  document.getElementById('slideCount').textContent = slideIndex + ' slides';
+
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('deck').style.display = 'block';
+  window.scrollTo(0, 0);
+}
+</script>
+</body>
+</html>
