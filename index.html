@@ -792,46 +792,46 @@ function restartQuestionnaire() {
 
 // ─── Data Collection ───
 function collectAnswers() {
-  D.company       = document.getElementById('q_company').value.trim() || 'Your Company';
+  D.company       = document.getElementById('q_company').value.trim();
   D.currency      = document.getElementById('q_currency').value || 'USD';
   CUR             = CURRENCIES[D.currency] || CURRENCIES.USD;
   D.companyLogo   = null;
-  D.industry      = document.getElementById('q_industry').value || 'Manufacturing';
-  D.revenue       = document.getElementById('q_revenue').value || '$500M–$1B';
-  D.erp           = getRadio('q_erp') || 'ECC';
-  D.s4plan        = getRadio('q_s4plan') || '1-2yr';
-  D.controlled    = getRadio('q_controlled') || 'Unsure';
+  D.industry      = document.getElementById('q_industry').value;
+  D.revenue       = document.getElementById('q_revenue').value;
+  D.erp           = getRadio('q_erp');
+  D.s4plan        = getRadio('q_s4plan');
+  D.controlled    = getRadio('q_controlled');
   D.regimes       = getChecks('q_regimes');
-  D.users         = parseInt(document.getElementById('q_users').value) || 5;
-  D.customsUsers  = parseInt(document.getElementById('q_customs_users').value) || 5;
-  D.team          = getRadio('q_team') || 'Shared';
+  D.users         = parseInt(document.getElementById('q_users').value) || 0;
+  D.customsUsers  = parseInt(document.getElementById('q_customs_users').value) || 0;
+  D.team          = getRadio('q_team');
   D.screening     = getChecks('q_screening');
   D.screenVol     = parseInt(document.getElementById('q_screen_vol').value) || 0;
-  D.licenses      = document.getElementById('q_licenses').value || 'None';
-  D.countries     = parseInt(document.getElementById('q_countries').value) || 10;
-  D.exports       = parseInt(document.getElementById('q_exports').value) || 2000;
-  D.imports       = parseInt(document.getElementById('q_imports').value) || 3000;
-  D.transit       = parseInt(document.getElementById('q_transit').value) || 500;
-  D.brokerCost    = parseInt(document.getElementById('q_broker_cost').value) || 90;
-  D.broker        = getRadio('q_broker') || 'Some';
-  D.penalties     = getRadio('q_penalties') || 'No';
-  D.automation    = document.getElementById('q_automation').value || '<25%';
+  D.licenses      = document.getElementById('q_licenses').value;
+  D.countries     = parseInt(document.getElementById('q_countries').value) || 0;
+  D.exports       = parseInt(document.getElementById('q_exports').value) || 0;
+  D.imports       = parseInt(document.getElementById('q_imports').value) || 0;
+  D.transit       = parseInt(document.getElementById('q_transit').value) || 0;
+  D.brokerCost    = parseInt(document.getElementById('q_broker_cost').value) || 0;
+  D.broker        = getRadio('q_broker');
+  D.penalties     = getRadio('q_penalties');
+  D.automation    = document.getElementById('q_automation').value;
   D.procedures    = getChecks('q_procedures');
   D.bonded        = D.procedures.includes('Bonded Warehouse') ? 'Yes' : 'No';
   D.ftz           = D.procedures.includes('Free Trade Zone (FTZ)') ? 'Yes' : 'No';
-  D.ftas          = parseInt(document.getElementById('q_ftas').value) || 2;
-  D.dutySpend     = document.getElementById('q_duty_spend').value || '$2M–$10M';
-  D.drawback      = getRadio('q_drawback') || 'No';
-  D.origin        = getRadio('q_origin') || 'Manual';
-  D.skus          = document.getElementById('q_skus').value || '5K–20K';
+  D.ftas          = parseInt(document.getElementById('q_ftas').value) || 0;
+  D.dutySpend     = document.getElementById('q_duty_spend').value;
+  D.drawback      = getRadio('q_drawback');
+  D.origin        = getRadio('q_origin');
+  D.skus          = document.getElementById('q_skus').value;
   D.classMethod   = getChecks('q_class_method');
-  D.multiHs       = getRadio('q_multi_hs') || 'Yes';
-  D.classReview   = getRadio('q_class_review') || 'Annually';
-  D.misclass      = getRadio('q_misclass') || 'Unsure';
-  D.expansion     = getRadio('q_expansion') || 'Maybe';
+  D.multiHs       = getRadio('q_multi_hs');
+  D.classReview   = getRadio('q_class_review');
+  D.misclass      = getRadio('q_misclass');
+  D.expansion     = getRadio('q_expansion');
   D.painPoints    = getChecks('q_painpoints');
-  D.payback       = getRadio('q_payback') || '12-24m';
-  D.golive        = getRadio('q_golive') || '6-12m';
+  D.payback       = getRadio('q_payback');
+  D.golive        = getRadio('q_golive');
   D.notes         = document.getElementById('q_notes').value.trim();
   D.licCost       = parseInt(document.getElementById('q_lic_cost').value) || 0;
 
@@ -852,9 +852,9 @@ function collectAnswers() {
 
   // Duty spend midpoints
   const dutyMap = {'<$500K':300000,'$500K–$2M':1250000,'$2M–$10M':6000000,'$10M–$50M':30000000,'>$50M':75000000};
-  D.dutyMid = dutyMap[D.dutySpend] || 6000000;
-  // FTA saving: 15–30% of duties on eligible spend
-  const ftaPct = Math.min(0.08 + D.ftas * 0.03, 0.30);
+  D.dutyMid = dutyMap[D.dutySpend] || 0;
+  // FTA saving: only if FTAs > 0
+  const ftaPct = D.ftas > 0 ? Math.min(0.08 + D.ftas * 0.03, 0.30) : 0;
   D.ftaSaving = Math.round(D.dutyMid * ftaPct);
   // Special procedures saving (bonded/FTZ duty deferral / inward processing)
   D.specialSaving = (D.bonded === 'Yes' || D.ftz === 'Yes') ? Math.round(D.dutyMid * 0.12) : 0;
@@ -878,7 +878,7 @@ function collectAnswers() {
 
   // SKU classification hours
   const skuMap = {'<1K':800,'1K–5K':4000,'5K–20K':15000,'20K–100K':60000,'>100K':200000};
-  D.classHours = skuMap[D.skus] || 15000;
+  D.classHours = skuMap[D.skus] || 0;
   const hourlyRate = 85;
   D.classLabor = D.classHours * hourlyRate;
   D.classLaborSaving = Math.round(D.classLabor * 0.60); // GTS automates ~60%
