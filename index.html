@@ -2850,7 +2850,7 @@ Return ONLY valid JSON (no markdown, no explanation):
 // ─── Generate ───
 function logUsage() {
   try {
-    const payload = {
+    const params = new URLSearchParams({
       name:     D.userName  || '',
       email:    D.userEmail || '',
       company:  D.company   || '',
@@ -2858,14 +2858,9 @@ function logUsage() {
       countries:String(D.countries || ''),
       currency: D.currency  || '',
       benefit:  D.totalBenefit ? String(D.totalBenefit) : ''
-    };
-    fetch('https://script.google.com/macros/s/AKfycbzxQKtqN1-ktzI3mz8UuVD3K0FnBSRwIXZGNMNrxmrScwkGjvysJSL79LwXhBTU4QwGPQ/exec', {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify(payload)
     });
-  } catch(e) { /* silent — never block deck generation */ }
+    new Image().src = 'https://script.google.com/macros/s/AKfycbwGtnWFazovywT7D6ENIofkZsDUjtVT3rWFlNlkeKkCXwuRc44yqk6FWOMoVMQetL701Q/exec?' + params.toString();
+  } catch(e) { /* silent */ }
 }
 
 async function generateDeck() {
