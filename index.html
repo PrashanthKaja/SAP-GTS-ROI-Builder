@@ -201,12 +201,19 @@
   .cover-logo-corner { position: absolute; top: 28px; right: 36px; }
   .cover-logo-corner .sap-svg { height: 36px; width: auto; }
 
+  #loadingOverlay { display:none; position:fixed; inset:0; background:rgba(21,42,62,.92); z-index:999; flex-direction:column; align-items:center; justify-content:center; gap:1.25rem; }
+  #loadingOverlay.active { display:flex; }
+  .spin-ring { width:3rem; height:3rem; border:4px solid rgba(255,255,255,.15); border-top-color:#fff; border-radius:50%; animation:spin .9s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .api-key-panel { background:#EEF5FE; border:1px solid #b3d0fa; border-radius:.5rem; padding:1rem 1.25rem; margin-bottom:1.25rem; }
+
   @media print {
     .deck-toolbar { display: none !important; }
     .slides-container { padding: 0; gap: 0; }
     .slide { box-shadow: none; border-radius: 0; width: 100%; }
   }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 </head>
 <body>
 
@@ -659,6 +666,11 @@
           <label class="radio-option" onclick="selectRadio('q_golive','Evaluating')"><input type="radio" value="Evaluating">Still evaluating</label>
         </div>
       </div>
+      <div class="api-key-panel">
+        <label style="font-weight:700;color:var(--sap-blue);margin-bottom:.375rem;display:block">Anthropic API Key <span style="background:var(--sap-green);color:#fff;border-radius:10px;padding:2px 8px;font-size:10px;font-weight:700;margin-left:4px;vertical-align:middle">LIVE REFERENCES</span></label>
+        <input type="password" id="q_api_key" placeholder="sk-ant-api03-…" autocomplete="off" style="width:100%;border:1px solid var(--sap-border);border-radius:.25rem;height:2.25rem;padding:0 .625rem;font-family:monospace;font-size:.8125rem;letter-spacing:.04em;color:var(--sap-text)">
+        <div class="hint" style="margin-top:.375rem">Optional. When provided, Claude AI <strong>searches the web in real time</strong> for current enforcement cases, analyst benchmarks, and regulatory updates for your industry at generation time — so references in your deck reflect the latest available data. Key is stored in this browser only and sent only to Anthropic. <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--sap-blue)">Get a free key →</a></div>
+      </div>
       <div class="field">
         <label>Estimated annual SAP GTS license cost (<span class="cur-label">USD</span>)</label>
         <input type="number" id="q_lic_cost" placeholder="e.g. 250000" min="0">
@@ -682,6 +694,13 @@
   </div>
 </div>
 
+<div id="loadingOverlay">
+  <div class="spin-ring"></div>
+  <div id="loadingTitle" style="color:#fff;font-size:1rem;font-weight:700;letter-spacing:.02em">Researching live data…</div>
+  <div id="loadingStatus" style="color:rgba(255,255,255,.65);font-size:.875rem;text-align:center;max-width:400px;margin-top:.25rem">Connecting to Claude AI</div>
+  <div id="loadingSteps" style="margin-top:1.1rem;display:flex;flex-direction:column;gap:.45rem;min-width:330px;max-width:420px"></div>
+</div>
+
 <!-- ═══════════════════════════════════════ DECK ═══════════════════════════════════════ -->
 <div id="deck">
   <div class="deck-toolbar">
@@ -690,10 +709,22 @@
     <div class="slide-nav">
       <span id="slideCount"></span>
       <button onclick="window.print()">🖨 Print / Export PDF</button>
+      <button onclick="downloadPPTX()" style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.45);color:#fff;font-weight:700">⬇ Download PPTX</button>
       <button onclick="restartQuestionnaire()">← New Build</button>
     </div>
   </div>
   <div class="slides-container" id="slidesContainer"></div>
+</div>
+
+<div id="swInstructions" style="display:none;position:fixed;bottom:1.5rem;right:1.5rem;z-index:200;background:#fff;border:1px solid #D1D7DD;border-radius:0.5rem;box-shadow:0 4px 20px rgba(0,0,0,.15);padding:1.25rem 1.5rem;max-width:420px;font-size:0.8125rem;line-height:1.5;color:#1D2D3E">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.75rem">
+    <div style="font-weight:700;font-size:0.9375rem;color:#0070F2">deck.html downloaded</div>
+    <button onclick="document.getElementById('swInstructions').style.display='none'" style="background:none;border:none;cursor:pointer;color:#556B82;font-size:1.25rem;line-height:1;padding:0;margin-left:1rem">×</button>
+  </div>
+  <p style="margin-bottom:0.625rem">To open the deck with the Slidewright engine, copy <code style="background:#EEF0F2;padding:1px 5px;border-radius:3px">deck.html</code> into your GTS ROI deck folder and replace the template file there:</p>
+  <code style="display:block;background:#1D2D3E;color:#B0C4DE;padding:0.625rem 0.875rem;border-radius:0.375rem;font-size:0.75rem;word-break:break-all;margin-bottom:0.75rem">C:\Users\I764365\Decks\GTS-ROI-Deck\</code>
+  <p style="margin-bottom:0.5rem">Then open <code style="background:#EEF0F2;padding:1px 5px;border-radius:3px">deck.html</code> in Chrome or Edge. Press <strong>→</strong> to advance, <strong>S</strong> for presenter console, <strong>K</strong> to check the layout, <strong>?</strong> for all keys.</p>
+  <p style="color:#556B82;font-size:0.75rem">To create a standalone single file: run <code style="background:#EEF0F2;padding:1px 4px;border-radius:3px">python3 tools/bundle.py</code> inside the deck folder.</p>
 </div>
 
 <script>
@@ -735,6 +766,15 @@ function fmt(n) {
 const SAP_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 412.38 204"><defs><style>.sl1{fill:url(#slg);fill-rule:evenodd}.sl2{fill:#fff;fill-rule:evenodd}</style><linearGradient id="slg" x1="206.19" y1="0" x2="206.19" y2="204" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#00b1eb"/><stop offset=".212" stop-color="#009ad9"/><stop offset=".519" stop-color="#007fc4"/><stop offset=".792" stop-color="#006eb8"/><stop offset="1" stop-color="#0069b4"/></linearGradient></defs><polyline class="sl1" points="0 204 208.413 204 412.38 0 0 0 0 204"/><path class="sl2" d="m244.727,38.359l-40.593-.025v96.518l-35.46-96.518h-35.16l-30.277,80.716c-3.224-20.352-24.277-27.38-40.84-32.649-10.937-3.512-22.541-8.678-22.434-14.387.091-4.687,6.225-9.04,18.377-8.385,8.17.433,15.373,1.092,29.71,8.006l14.102-24.557c-13.088-6.658-31.169-10.867-45.985-10.883h-.086c-17.277,0-31.677,5.598-40.602,14.824-6.221,6.443-9.572,14.626-9.712,23.679-.227,12.454,4.341,21.292,13.938,28.338,8.104,5.944,18.468,9.794,27.603,12.626,11.27,3.492,20.467,6.526,20.36,13.002-.083,2.355-.977,4.552-2.671,6.337-2.807,2.897-7.124,3.986-13.084,4.098-11.497.243-20.026-1.559-33.61-9.585l-12.536,24.903c13.546,7.705,29.586,12.223,45.952,12.223l2.106-.024c14.247-.256,25.745-4.316,34.929-11.712.527-.416,1.001-.845,1.488-1.277l-4.073,10.874h36.875l6.189-18.822c6.477,2.214,13.847,3.437,21.676,3.437,7.618,0,14.795-1.17,21.156-3.252l5.965,18.637h60.137v-38.969h13.113c31.706,0,50.456-16.147,50.456-43.202,0-30.139-18.219-43.969-57.011-43.969Zm-93.816,82.587c-4.737,0-9.177-.828-13.006-2.275l12.866-40.593h.244l12.643,40.708c-3.801,1.349-8.138,2.16-12.746,2.16Zm96.199-23.324h-8.941v-32.711h8.941c11.927,0,21.437,3.961,21.437,16.139,0,12.602-9.51,16.572-21.437,16.572"/></svg>`;
 const SAP_DATA_URL = 'data:image/svg+xml;base64,' + btoa(SAP_SVG);
 document.getElementById('heroSapLogo').src = SAP_DATA_URL;
+
+// Restore saved API key on page load
+(function() {
+  const saved = localStorage.getItem('gts_roi_api_key');
+  if (saved) {
+    const el = document.getElementById('q_api_key');
+    if (el) el.value = saved;
+  }
+})();
 
 function goStep(n) {
   document.querySelectorAll('.step').forEach(s => s.style.display = 'none');
@@ -1458,8 +1498,30 @@ function roiSlide() {
 
 // ── References ──
 function referencesSlide() {
+  const dyn = D.dynamicRefs;
+
+  const benchmarks = dyn && dyn.analystBenchmarks
+    ? dyn.analystBenchmarks.map(b => `<li style="font-size:12px">${b}</li>`).join('')
+    : `<li style="font-size:12px">E2open Global Trade &amp; Tariff Impact Study: <a href="https://www.e2open.com/research" target="_blank">e2open.com/research</a></li>
+       <li style="font-size:12px">Aberdeen Group — Trade Compliance Benchmark Report</li>
+       <li style="font-size:12px">PwC Global Trade Management Study — <a href="https://www.pwc.com" target="_blank">pwc.com</a></li>
+       <li style="font-size:12px">KPMG Customs &amp; Trade Benchmarking Survey — <a href="https://www.kpmg.com" target="_blank">kpmg.com</a></li>`;
+
+  const enforcementItems = dyn && dyn.industryEnforcement && dyn.industryEnforcement.recentCases
+    ? dyn.industryEnforcement.recentCases.map(c => `<li style="font-size:12px">${c}</li>`).join('')
+    : `<li style="font-size:12px">U.S. BIS — Enforcement Actions: <a href="https://www.bis.doc.gov/index.php/enforcement/oce" target="_blank">bis.doc.gov/enforcement/oce</a></li>
+       <li style="font-size:12px">U.S. OFAC — Civil Penalties: <a href="https://ofac.treasury.gov/civil-penalties-and-enforcement-information" target="_blank">ofac.treasury.gov/civil-penalties</a></li>
+       <li style="font-size:12px">EU Dual-Use Export Controls: <a href="https://single-market-economy.ec.europa.eu/sectors/defence-industries/dual-use_en" target="_blank">ec.europa.eu/dual-use</a></li>
+       <li style="font-size:12px">WTO RTA Database: <a href="https://rtais.wto.org" target="_blank">rtais.wto.org</a></li>`;
+
+  const vintageNote = dyn
+    ? `<div class="note-box" style="margin-top:8px;background:#e8f5ee;border-left-color:var(--sap-green);color:#1a4a1a">✓ References refreshed by Claude AI on ${dyn.dataVintage}. Enforcement data and benchmarks reflect industry knowledge up to model training cutoff.</div>`
+    : `<div class="note-box" style="margin-top:8px">All enforcement case data sourced from public regulatory records. ROI benchmarks are industry estimates. Enter an Anthropic API key in the questionnaire to enable AI-refreshed references.</div>`;
+
+  const titleTag = dyn ? ` <span class="tag green" style="font-size:10px;vertical-align:middle">AI-refreshed ${dyn.dataVintage}</span>` : '';
+
   return makeSlide(`
-    <div class="slide-title" style="border-color:var(--sap-gray)">References &amp; Sources</div>
+    <div class="slide-title" style="border-color:var(--sap-gray)">References &amp; Sources${titleTag}</div>
     <div class="two-col" style="gap:20px">
       <div>
         <div class="col-box" style="margin-bottom:12px">
@@ -1472,23 +1534,17 @@ function referencesSlide() {
           </ul>
         </div>
         <div class="col-box">
-          <h4>Regulatory &amp; Enforcement Sources</h4>
+          <h4>Regulatory &amp; Enforcement Sources${dyn ? ' <span class="tag green" style="font-size:9px">AI refreshed</span>' : ''}</h4>
           <ul class="bullet-list" style="margin-top:4px">
-            <li style="font-size:12px">U.S. BIS — Enforcement Actions: <a href="https://www.bis.doc.gov/index.php/enforcement/oce" target="_blank">bis.doc.gov/enforcement/oce</a></li>
-            <li style="font-size:12px">U.S. OFAC — Civil Penalties: <a href="https://ofac.treasury.gov/civil-penalties-and-enforcement-information" target="_blank">ofac.treasury.gov/civil-penalties</a></li>
-            <li style="font-size:12px">EU Dual-Use Export Controls: <a href="https://single-market-economy.ec.europa.eu/sectors/defence-industries/dual-use_en" target="_blank">ec.europa.eu/dual-use</a></li>
-            <li style="font-size:12px">WTO RTA Database: <a href="https://rtais.wto.org" target="_blank">rtais.wto.org</a></li>
+            ${enforcementItems}
           </ul>
         </div>
       </div>
       <div>
         <div class="col-box" style="margin-bottom:12px">
-          <h4>Industry Research &amp; Benchmarks</h4>
+          <h4>Industry Research &amp; Benchmarks${dyn ? ' <span class="tag green" style="font-size:9px">AI refreshed</span>' : ''}</h4>
           <ul class="bullet-list" style="margin-top:4px">
-            <li style="font-size:12px">E2open Global Trade &amp; Tariff Impact Study: <a href="https://www.e2open.com/research" target="_blank">e2open.com/research</a></li>
-            <li style="font-size:12px">Aberdeen Group — Trade Compliance Benchmark Report</li>
-            <li style="font-size:12px">PwC Global Trade Management Study — <a href="https://www.pwc.com" target="_blank">pwc.com</a></li>
-            <li style="font-size:12px">KPMG Customs &amp; Trade Benchmarking Survey — <a href="https://www.kpmg.com" target="_blank">kpmg.com</a></li>
+            ${benchmarks}
           </ul>
         </div>
         <div class="col-box">
@@ -1501,7 +1557,7 @@ function referencesSlide() {
         </div>
       </div>
     </div>
-    <div class="note-box" style="margin-top:8px">All enforcement case data sourced from public regulatory records. ROI benchmarks are industry estimates — actual results depend on scope, implementation quality, and operational maturity.</div>
+    ${vintageNote}
   `);
 }
 
@@ -1537,9 +1593,1273 @@ function assumptionsSlide() {
   `);
 }
 
-// ─── Generate ───
-function generateDeck() {
+// ─── PPTX Export (PptxGenJS) ───
+async function downloadPPTX() {
+  if (!D.company) collectAnswers();
+  if (typeof PptxGenJS === 'undefined') { alert('PptxGenJS library not loaded — check your internet connection and try again.'); return; }
+
+  const pptx = new PptxGenJS();
+  pptx.layout = 'LAYOUT_16x9'; // 10" × 5.625"
+  pptx.title = `SAP GTS Business Case — ${D.company}`;
+  pptx.author = 'SAP GTS ROI Builder';
+
+  const W = 10, H = 5.625, FH = 0.38, FY = H - FH;
+  const C = {
+    blue:'0070F2', shell:'354A5E', cover:'012A4A', gold:'F0AB00',
+    green:'188918', red:'AA0808', gray:'556B82', light:'EEF0F2',
+    text:'1D2D3E', border:'D1D7DD', white:'FFFFFF'
+  };
+
+  function footer(s, n) {
+    s.addShape(pptx.ShapeType.rect, { x:0, y:FY, w:W, h:FH, fill:{color:C.shell}, line:{color:C.shell, pt:0} });
+    s.addShape(pptx.ShapeType.rect, { x:0.22, y:FY+0.06, w:0.4, h:0.26, fill:{color:C.white}, line:{color:C.white, pt:0}, rectRadius:0.02 });
+    s.addText('SAP', { x:0.22, y:FY+0.06, w:0.4, h:0.26, fontSize:8, bold:true, color:C.shell, align:'center', valign:'middle' });
+    s.addText(D.company, { x:0.72, y:FY+0.05, w:3.8, h:0.28, fontSize:8, bold:true, color:'BBCCDD' });
+    s.addText('SAP GTS — Business Case', { x:3.8, y:FY+0.05, w:3.8, h:0.28, fontSize:8, color:'8899AA', align:'center' });
+    s.addText(String(n), { x:9.35, y:FY+0.05, w:0.45, h:0.28, fontSize:9, bold:true, color:C.white, align:'right' });
+  }
+
+  function titleBar(s, text, color) {
+    s.addShape(pptx.ShapeType.rect, { x:0.45, y:0.36, w:0.07, h:0.52, fill:{color:color||C.blue}, line:{color:color||C.blue, pt:0} });
+    s.addText(text, { x:0.6, y:0.33, w:9.0, h:0.58, fontSize:16, bold:true, color:C.text, valign:'middle' });
+  }
+
+  function kpiRow(s, boxes, y) {
+    const n = boxes.length, gap = 0.1;
+    const bw = (W - 1.0 - gap * (n - 1)) / n;
+    boxes.forEach((b, i) => {
+      const bx = 0.5 + i * (bw + gap);
+      s.addShape(pptx.ShapeType.rect, { x:bx, y, w:bw, h:0.9, fill:{color:C.light}, line:{color:C.border, pt:1} });
+      s.addShape(pptx.ShapeType.rect, { x:bx, y, w:bw, h:0.055, fill:{color:b.color||C.blue}, line:{color:b.color||C.blue, pt:0} });
+      s.addText(b.val, { x:bx+0.06, y:y+0.06, w:bw-0.12, h:0.48, fontSize:b.val.length>9?14:18, bold:true, color:C.text, align:'center', valign:'middle', shrinkText:true });
+      s.addText(b.label, { x:bx+0.05, y:y+0.55, w:bw-0.1, h:0.3, fontSize:7.5, color:C.gray, align:'center', wrap:true });
+    });
+  }
+
+  function bulletBlock(s, items, x, y, w, h) {
+    const arr = [];
+    items.forEach((item, idx) => {
+      if (idx > 0) arr.push({ text:'\n', options:{fontSize:9.5} });
+      arr.push({ text:'▸  ', options:{color:C.blue, fontSize:9.5, bold:true} });
+      arr.push({ text:item.text, options:{color:C.text, fontSize:9.5} });
+      if (item.sub) arr.push({ text:'\n    '+item.sub, options:{color:C.gray, fontSize:8} });
+    });
+    s.addText(arr, { x, y, w, h, valign:'top', wrap:true, lineSpacingMultiple:1.25 });
+  }
+
+  function sectionSlide(num, title, desc) {
+    const s = pptx.addSlide();
+    s.background = { color:C.shell };
+    s.addShape(pptx.ShapeType.rect, { x:0, y:0, w:W, h:H, fill:{color:C.blue, transparency:78}, line:{color:C.blue, transparency:78, pt:0} });
+    s.addText(num, { x:0.5, y:0.7, w:3, h:1.9, fontSize:96, bold:true, color:'FFFFFF', transparency:82 });
+    s.addText(title, { x:0.5, y:2.25, w:8.8, h:0.95, fontSize:28, bold:true, color:C.white, wrap:true });
+    s.addShape(pptx.ShapeType.rect, { x:0.5, y:3.28, w:1.5, h:0.05, fill:{color:'FFFFFF', transparency:55}, line:{color:C.white, transparency:55, pt:0} });
+    s.addText(desc, { x:0.5, y:3.42, w:8.2, h:0.72, fontSize:12, color:'CCDDE8', wrap:true });
+    return s;
+  }
+
+  let n = 0;
+
+  // ── Slide 1: Cover ──
+  n++; {
+    const s = pptx.addSlide();
+    s.background = { color:C.cover };
+    s.addShape(pptx.ShapeType.rect, { x:4.8, y:0, w:5.2, h:H, fill:{color:C.blue, transparency:75}, line:{color:C.blue, transparency:75, pt:0} });
+    s.addShape(pptx.ShapeType.rect, { x:8.65, y:0.26, w:1.1, h:0.42, fill:{color:C.white}, line:{color:C.white, pt:0}, rectRadius:0.02 });
+    s.addText('SAP', { x:8.65, y:0.26, w:1.1, h:0.42, fontSize:13, bold:true, color:C.shell, align:'center', valign:'middle', charSpacing:1.5 });
+    s.addText('BUSINESS CASE PRESENTATION', { x:0.65, y:1.32, w:7, h:0.32, fontSize:9, color:'7788AA', charSpacing:2.5 });
+    s.addText([
+      {text:'SAP Global Trade Services\n', options:{fontSize:26, bold:true, color:C.white}},
+      {text:'Edition for HANA', options:{fontSize:22, bold:true, color:C.white}}
+    ], { x:0.65, y:1.68, w:7.6, h:1.35, valign:'top', lineSpacingMultiple:1.15 });
+    s.addShape(pptx.ShapeType.rect, { x:0.65, y:3.15, w:1.2, h:0.05, fill:{color:C.gold}, line:{color:C.gold, pt:0} });
+    s.addText('Value Case & Return on Investment Analysis', { x:0.65, y:3.28, w:7.2, h:0.38, fontSize:12, color:'BBCCDD' });
+    const dt = new Date().toLocaleDateString('en-GB', {year:'numeric',month:'long'});
+    s.addShape(pptx.ShapeType.roundRect, { x:0.65, y:3.83, w:6.4, h:0.38, fill:{color:'FFFFFF', transparency:88}, line:{color:'FFFFFF', transparency:65, pt:1}, rectRadius:0.15 });
+    s.addText(`Prepared for: ${D.company}   |   ${D.industry}   |   ${dt}`, { x:0.78, y:3.86, w:6.1, h:0.32, fontSize:9.5, color:'CCDDE8' });
+    footer(s, n);
+  }
+
+  // ── Slide 2: Disclaimer ──
+  n++; {
+    const s = pptx.addSlide();
+    titleBar(s, 'Important Disclaimer', C.gray);
+    s.addShape(pptx.ShapeType.rect, { x:0.5, y:1.06, w:9, h:0.72, fill:{color:'FFF8E1'}, line:{color:C.gold, pt:1.5} });
+    s.addText([
+      {text:"This output does not replace SAP's Value Advisory Service\n", options:{bold:true, fontSize:11, color:'5A4500'}},
+      {text:'Figures shown are estimates based on industry benchmarks and inputs provided. They have not been validated through formal discovery or data extraction from your systems.', options:{fontSize:9, color:'5A4500'}}
+    ], { x:0.65, y:1.1, w:8.7, h:0.64, valign:'top', wrap:true });
+    const cw = 4.1;
+    [[0.5,C.green,'APPROPRIATE USE',['Understand the key value levers of SAP GTS','Prepare for a Value Advisory conversation','Identify areas that warrant deeper analysis','Internal directional alignment and scoping']],[5.0,C.red,'NOT INTENDED FOR',['Budget commitment or procurement decisions','Board or executive approval submissions','Representation of SAP-committed savings','Replacement of a co-signed business case']]].forEach(([bx, col, lbl, pts]) => {
+      s.addShape(pptx.ShapeType.rect, { x:bx, y:1.9, w:cw, h:1.78, fill:{color:C.light}, line:{color:C.border, pt:1} });
+      s.addText(lbl, { x:bx+0.1, y:1.97, w:cw-0.2, h:0.28, fontSize:8, bold:true, color:col, charSpacing:0.8 });
+      bulletBlock(s, pts.map(p => ({text:p})), bx+0.1, 2.28, cw-0.2, 1.3);
+    });
+    s.addShape(pptx.ShapeType.rect, { x:0.5, y:3.8, w:9, h:0.68, fill:{color:C.light}, line:{color:C.border, pt:1} });
+    s.addText([
+      {text:"For a Robust Business Case: ", options:{bold:true, fontSize:9, color:C.gray}},
+      {text:"SAP's Value Advisory team conducts structured trade discovery workshops, analyses your actual data, and produces a co-signed business case suitable for executive approval.", options:{fontSize:9, color:C.text}}
+    ], { x:0.65, y:3.85, w:8.7, h:0.58, wrap:true });
+    footer(s, n);
+  }
+
+  // ── Slide 3: Agenda ──
+  n++; {
+    const s = pptx.addSlide();
+    titleBar(s, 'Agenda');
+    const ags = [
+      {num:'01',title:'Product Classification',color:C.blue,desc:`Classification challenges & cost of errors. GTS classification workbench value.`},
+      {num:'02',title:'Trade Compliance',color:C.red,desc:`Regulatory exposure for ${D.industry}. Sanctioned party & embargo management.`},
+      {num:'03',title:'Customs Operations',color:C.green,desc:`Declaration volume & broker cost reduction. Customs automation.`},
+      {num:'04',title:'Trade Preference',color:C.gold,desc:`FTA participation: ${D.ftas} agreement(s). Special procedures.`},
+    ];
+    const bw = 2.08;
+    ags.forEach((a, i) => {
+      const bx = 0.5 + i * (bw + 0.09);
+      s.addShape(pptx.ShapeType.rect, { x:bx, y:1.08, w:bw, h:2.6, fill:{color:C.light}, line:{color:C.border, pt:1} });
+      s.addShape(pptx.ShapeType.rect, { x:bx, y:1.08, w:bw, h:0.055, fill:{color:a.color}, line:{color:a.color, pt:0} });
+      s.addText(a.num, { x:bx+0.1, y:1.15, w:0.55, h:0.32, fontSize:11, bold:true, color:a.color });
+      s.addText(a.title, { x:bx+0.08, y:1.48, w:bw-0.16, h:0.52, fontSize:11, bold:true, color:C.text, wrap:true });
+      s.addText(a.desc, { x:bx+0.08, y:2.03, w:bw-0.16, h:1.52, fontSize:9, color:C.gray, wrap:true });
+    });
+    s.addShape(pptx.ShapeType.rect, { x:0.5, y:3.8, w:9, h:0.42, fill:{color:'FEF9E7'}, line:{color:C.gold, pt:1} });
+    s.addText('Also covers: Process Automation & Efficiency Gains  |  ROI Summary  |  Assumptions', { x:0.65, y:3.85, w:8.7, h:0.32, fontSize:9.5, color:'5A4500' });
+    footer(s, n);
+  }
+
+  // ── Slides 4–6: Classification ──
+  n++; { const s = sectionSlide('01', 'Product Classification', `Managing HS codes, export control classifications, and product master data accurately across ${D.countries} countries of operation`); footer(s, n); }
+
+  n++; {
+    const s = pptx.addSlide();
+    titleBar(s, 'Classification: The Hidden Cost');
+    kpiRow(s, [{val:D.skus,label:'Active SKUs to classify',color:C.blue},{val:'~20–40%',label:'Industry mis-classification rate (manual)',color:C.red},{val:fmt(D.classLabor),label:'Est. annual classification labor cost',color:C.gold},{val:fmt(D.classLaborSaving),label:'Potential annual saving with GTS',color:C.green}], 1.06);
+    bulletBlock(s, [
+      {text:`Manual classification is error-prone: Industry studies show 20–40% of manually classified products contain errors, leading to overpaid duties, customs delays, or penalties.`, sub:'Source: PwC Global Trade Study 2022 / KPMG Customs Benchmarking'},
+      {text:`HS code divergence: With ${D.countries} active countries, each jurisdiction maintains its own tariff schedule — GTS centralises this into a single classification workbench supporting CN, HTS, CCT, and country-specific schedules.`},
+      {text:`Export control classification (ECCN): GTS integrates ECCN with SPL screening and licence determination automatically — eliminating last-minute order holds.`},
+      {text:`New product introduction speed: GTS reduces time-to-classify new products by up to 70% via classification proposals, rules-based engines, and a cockpit workflow.`},
+    ], 0.5, 2.1, 9.0, 2.7);
+    footer(s, n);
+  }
+
+  n++; {
+    const s = pptx.addSlide();
+    titleBar(s, 'GTS Classification Workbench — Key Capabilities');
+    bulletBlock(s, [
+      {text:'Centralised product master: One HS/HTS/ECCN classification per material, reused across all SAP transactions — no duplicate effort per shipment.'},
+      {text:'Classification proposals: GTS suggests HS codes based on existing data patterns, reducing manual research time by 50–70%.'},
+      {text:'Multi-country tariff management: Maintain parallel classification numbers (CN, HTS, TARIC) for different destination countries in a single master record.'},
+      {text:'Audit trail & validity control: Every classification change is versioned with user, date, and reason — essential for customs audits.'},
+    ], 0.5, 1.06, 4.6, 3.72);
+    bulletBlock(s, [
+      {text:'Automated classification workflow: Route new or changed products to subject matter experts with deadline tracking and approval management.'},
+      {text:'Integration with export licence determination: ECCN drives automatic licence checks at order entry, eliminating last-minute holds.'},
+      {text:'Preference classification: GTS manages origin data at component level to calculate preferential origin for finished goods.'},
+      {text:'Sanction list & embargo linkage: Product HS codes feed directly into embargo checks — certain codes trigger automatic review before export approval.'},
+    ], 5.2, 1.06, 4.35, 3.42);
+    s.addShape(pptx.ShapeType.rect, { x:5.2, y:4.52, w:4.35, h:0.5, fill:{color:'FEF9E7'}, line:{color:C.gold, pt:1} });
+    s.addText('GTS Classification is the foundation for Compliance, Customs, and Preference — errors here cascade downstream.', { x:5.35, y:4.56, w:4.05, h:0.4, fontSize:8.5, color:'5A4500', wrap:true });
+    footer(s, n);
+  }
+
+  // ── Slides 7–9: Compliance ──
+  n++; { const s = sectionSlide('02', 'Trade Compliance', `Managing sanctioned party screening, embargo management, and export licence determination${D.controlled==='Yes'?' for export-controlled products':''} across ${D.countries} countries of operation.`); footer(s, n); }
+
+  n++; {
+    const s = pptx.addSlide();
+    titleBar(s, `Compliance Risk Exposure — ${D.industry}`, C.red);
+    kpiRow(s, [{val:`Up to ${fmt(D.risk.max)}`,label:`Max single enforcement penalty — ${D.industry}`,color:C.red},{val:String(D.countries),label:'Jurisdictions requiring SPL screening',color:C.gold},{val:D.exports.toLocaleString(),label:'Export transactions per year at risk',color:C.red}], 1.06);
+    s.addShape(pptx.ShapeType.rect, { x:0.5, y:2.1, w:9, h:0.52, fill:{color:'FFF5F5'}, line:{color:C.red, pt:1.5} });
+    s.addText([{text:'Industry Precedent: ',options:{bold:true,color:C.red,fontSize:10}},{text:D.risk.ex,options:{color:C.text,fontSize:10}}], { x:0.65, y:2.14, w:8.7, h:0.44, wrap:true });
+    bulletBlock(s, [
+      {text:`Restricted party & SDN screening gaps: Manual or periodic screening leaves exposure windows. GTS performs real-time screening at order entry, delivery creation, and billing — across OFAC SDN, BIS Entity List, EU Consolidated List, and 200+ more.`, sub:'SAP GTS SPL screening covers 250+ government and commercial watchlists'},
+      {text:`False positive burden: Without intelligent fuzzy matching, compliance teams spend 60–80% of their time clearing false positives. GTS scoring algorithms reduce false positives by up to 40%.`},
+      {text:`Embargo & country-of-destination checks: With ${D.countries} active countries, manual embargo tracking is impractical. GTS automates country-level checks at transaction level.`},
+    ], 0.5, 2.74, 9.0, 2.0);
+    footer(s, n);
+  }
+
+  n++; {
+    const s = pptx.addSlide();
+    titleBar(s, 'How GTS Eliminates Compliance Exposure', C.red);
+    const caps = [
+      {title:'Real-Time SPL Screening', pts:['Integrated at SD order entry, delivery, billing, and MM POs','Checks against 250+ lists: OFAC SDN, EU, UN, BIS','Configurable holds & workflow escalation for review']},
+      {title:'Export Licence Management', pts:['Automatic licence determination: ECCN + country + end-user','Consumption tracking with balance management','Proactive expiry alerts before shipments are blocked']},
+      {title:'Embargo & Legal Control', pts:['Country-of-destination checks updated via SAP content','Re-export control tracks US-origin content rules','Technology transfer controls for technical data']},
+      {title:'Compliance Cockpit & Audit', pts:['Full audit trail: who screened, when, which list, result','Blocked shipment management with reason codes','Periodic re-screening of existing business partner base']},
+    ];
+    const bw = 2.1;
+    caps.forEach((c, i) => {
+      const bx = 0.5 + i * (bw + 0.09);
+      s.addShape(pptx.ShapeType.rect, { x:bx, y:1.06, w:bw, h:2.68, fill:{color:C.light}, line:{color:C.border, pt:1} });
+      s.addText(c.title, { x:bx+0.08, y:1.11, w:bw-0.16, h:0.44, fontSize:9.5, bold:true, color:C.text, wrap:true });
+      s.addText(c.pts.map(p=>`▸  ${p}`).join('\n'), { x:bx+0.08, y:1.57, w:bw-0.16, h:2.08, fontSize:8.5, color:C.gray, wrap:true, lineSpacingMultiple:1.25 });
+    });
+    s.addShape(pptx.ShapeType.rect, { x:0.5, y:3.86, w:9, h:0.52, fill:{color:'EEF5FE'}, line:{color:C.blue, pt:1} });
+    s.addText('GTS compliance checks are embedded inside SAP business processes — no separate tool login, no manual export to CSV. Compliance happens at the point of transaction, not after the fact.', { x:0.65, y:3.9, w:8.7, h:0.44, fontSize:9, color:C.text, wrap:true });
+    footer(s, n);
+  }
+
+  // ── Slides 10–12: Customs ──
+  n++; { const s = sectionSlide('03', 'Customs & Special Procedures', `Automating ${D.totalDecl.toLocaleString()} annual declarations across ${D.countries} countries — reducing broker dependency and accelerating customs clearance.`); footer(s, n); }
+
+  n++; {
+    const s = pptx.addSlide();
+    titleBar(s, 'Customs: Volume & Cost Baseline', C.green);
+    kpiRow(s, [{val:D.exports.toLocaleString(),label:'Export declarations / year',color:C.blue},{val:D.imports.toLocaleString(),label:'Import declarations / year',color:C.blue},{val:D.transit.toLocaleString(),label:'Transit declarations / year',color:C.blue},{val:fmt(D.brokerSpend),label:'Est. annual broker fees (current)',color:C.red}], 1.06);
+    s.addTable([
+      [{text:'Cost Driver',options:{bold:true,color:C.white,fill:{color:C.shell},fontSize:9}},{text:'Current State',options:{bold:true,color:C.white,fill:{color:C.shell},fontSize:9}},{text:'With GTS',options:{bold:true,color:C.white,fill:{color:C.shell},fontSize:9}},{text:'Annual Saving',options:{bold:true,color:C.white,fill:{color:C.shell},fontSize:9}}],
+      [{text:`Customs broker fees (${D.broker})`,options:{fontSize:9}},{text:fmt(D.brokerSpend),options:{fontSize:9}},{text:fmt(D.brokerSpend-D.brokerSaving),options:{fontSize:9}},{text:fmt(D.brokerSaving),options:{bold:true,color:C.green,fontSize:9}}],
+      [{text:'Declaration manual preparation time',options:{fontSize:9}},{text:'~18–25 min / declaration',options:{fontSize:9}},{text:'~5–8 min / declaration',options:{fontSize:9}},{text:fmt(D.declTimeSaving),options:{bold:true,color:C.green,fontSize:9}}],
+      [{text:'Duty errors & overpayments (est. 3–5%)',options:{fontSize:9}},{text:fmt(D.dutyMid*0.04),options:{fontSize:9}},{text:fmt(D.dutyMid*0.01),options:{fontSize:9}},{text:fmt(D.dutyMid*0.03),options:{bold:true,color:C.green,fontSize:9}}],
+    ], { x:0.5, y:2.1, w:9.0, rowH:0.4, border:{type:'solid',color:C.border,pt:1}, fill:{color:C.white}, fontFace:'Arial' });
+    s.addShape(pptx.ShapeType.rect, { x:0.5, y:3.88, w:9, h:0.5, fill:{color:'FEF9E7'}, line:{color:C.gold, pt:1} });
+    s.addText('SAP GTS Customs Connection enables direct self-filing and broker integrations in 50+ countries, replacing manual broker submission for a significant portion of declarations.', { x:0.65, y:3.92, w:8.7, h:0.42, fontSize:8.5, color:'5A4500', wrap:true });
+    footer(s, n);
+  }
+
+  n++; {
+    const s = pptx.addSlide();
+    titleBar(s, 'GTS Customs Capabilities & Special Procedures', C.green);
+    const special = [D.bonded==='Yes'?'Bonded Warehouse':'',D.ftz==='Yes'?'Free Trade Zone management':''].filter(Boolean).join(' and ') || 'Special Customs Procedures';
+    bulletBlock(s, [
+      {text:'Electronic customs filing: GTS generates and transmits declarations directly to government systems (AES, CHIEF/CDS, ATLAS) or via broker integrations across 50+ countries.', sub:'Self-filing and broker integrations in 50+ countries'},
+      {text:'Pre-built document generation: Commercial invoices, packing lists, certificates of origin, EUR.1, REX declarations — all auto-generated from SAP data.', sub:'Eliminates 40–60% of customs document preparation time'},
+      {text:'Duty calculation & landed costs: GTS computes duties per declaration, feeding import condition types in MM.'},
+      {text:`${special}: GTS tracks goods movements in and out of regimes, calculates suspended duty balances, and triggers automatic duty crystallisation on regime exit.`},
+    ], 0.5, 1.06, 4.6, 3.72);
+    bulletBlock(s, [
+      {text:'Inward/Outward Processing Relief: GTS manages IP/OP authorisations, tracks material consumption, and calculates specific commercial policy measures — recovering duties on exported finished goods.', sub:'Typically 5–15% additional duty savings for manufacturers'},
+      {text:`AEO & trusted trader programmes: GTS supports AEO condition monitoring — helping ${D.company} maintain authorised economic operator status.`},
+      {text:'Customs audit readiness: Complete declaration archive with entry/exit data, duty calculations, and document links.'},
+      {text:'Import duty relief / CPC optimisation: GTS classifies each shipment to the most beneficial customs procedure code.'},
+    ], 5.2, 1.06, 4.35, 3.72);
+    footer(s, n);
+  }
+
+  // ── Slides 13–15: Preference ──
+  n++; { const s = sectionSlide('04', 'Trade Preference & Duty Savings', `Maximising FTA utilisation across ${D.ftas} agreement(s), automating preference determination, and managing certificates of origin for ${D.exports.toLocaleString()} annual exports.`); footer(s, n); }
+
+  n++; {
+    const s = pptx.addSlide();
+    titleBar(s, 'Trade Preference: Unlocking Duty Savings', C.gold);
+    const kpis = [{val:String(D.ftas),label:'Active FTAs to optimise',color:C.gold},{val:D.dutySpend,label:'Annual duty spend baseline',color:C.blue},{val:fmt(D.ftaSaving),label:'Est. FTA preference savings',color:C.green}];
+    if (D.specialSaving > 0) kpis.push({val:fmt(D.specialSaving),label:'Special procedures duty savings',color:C.green});
+    kpiRow(s, kpis, 1.06);
+    bulletBlock(s, [
+      {text:'Missed preference is cash left on the table: Studies show 30–60% of qualifying imports never claim available FTA preference — primarily due to lack of automated origin determination.', sub:'Source: Amber Road / E2open Global Trade Study; WTO FTA Utilization Research 2021'},
+      {text:'Vendor declaration management: GTS automates the collection and validity tracking of long-term supplier declarations (LTSDs) — the foundation of EU preferential origin determination.'},
+      {text:"Bill-of-materials origin calculation: GTS analyses each finished good's BOM components and applies the relevant rule of origin, determining preference eligibility automatically."},
+      {text:'Certificate of origin issuance: GTS auto-generates EUR.1, Form A, REX statements, and country-specific certificates of origin — eliminating manual preparation errors.', sub:'Certificate errors can result in duty reclaim by importing customs authorities'},
+    ], 0.5, 2.1, 9.0, 2.3);
+    s.addShape(pptx.ShapeType.rect, { x:0.5, y:4.52, w:9, h:0.46, fill:{color:'E8F5EE'}, line:{color:C.green, pt:1} });
+    s.addText('Estimated Total Annual Duty Savings', { x:0.65, y:4.56, w:6, h:0.38, fontSize:11, bold:true, color:C.text });
+    s.addText(fmt(D.totalDutySaving), { x:7.2, y:4.52, w:2.1, h:0.46, fontSize:20, bold:true, color:C.green, align:'right', valign:'middle' });
+    footer(s, n);
+  }
+
+  n++; {
+    const s = pptx.addSlide();
+    titleBar(s, 'Special Procedures: Deferred & Suspended Duties', C.gold);
+    const procs = [
+      {title:'Bonded Warehouse',pts:['Duty deferred until goods enter free circulation','GTS tracks all stock movements in and out of regime in real time','Automatic duty calculation and crystallisation on regime exit','Full customs authority reporting generated automatically']},
+      {title:'Inward Processing Relief',pts:['Tracks imported raw materials through manufacturing to exported goods','Calculates relief on duties that would otherwise apply','Bill-of-exchange and commercial policy measure management']},
+      {title:'Free Trade Zone (FTZ)',pts:['GTS manages FTZ inventory and duty-free status of goods','Tracks weekly entries for weekly entry filing programmes (US CBP)','Zone-to-zone transfers and zone admission/withdrawal processing']},
+      {title:'Temporary Admission',pts:['Manages temporary export/import for processing, repair, or exhibition','Tracks re-importation deadlines to avoid duty crystallisation','Integrates with logistics for automatic goods movement tracking']},
+    ];
+    const bw = 2.1;
+    procs.forEach((p, i) => {
+      const bx = 0.5 + i * (bw + 0.09);
+      s.addShape(pptx.ShapeType.rect, { x:bx, y:1.06, w:bw, h:2.72, fill:{color:C.light}, line:{color:C.border, pt:1} });
+      s.addText(p.title, { x:bx+0.08, y:1.11, w:bw-0.16, h:0.42, fontSize:9.5, bold:true, color:C.text, wrap:true });
+      s.addText(p.pts.map(pt=>`▸  ${pt}`).join('\n'), { x:bx+0.08, y:1.55, w:bw-0.16, h:2.12, fontSize:8.5, color:C.gray, wrap:true, lineSpacingMultiple:1.25 });
+    });
+    s.addShape(pptx.ShapeType.rect, { x:0.5, y:3.88, w:9, h:0.5, fill:{color:'FEF9E7'}, line:{color:C.gold, pt:1} });
+    s.addText(`Each procedure requires precise tracking and timely filing — GTS makes compliance automatic rather than a manual burden on your ${D.users} trade team members.`, { x:0.65, y:3.92, w:8.7, h:0.42, fontSize:9, color:'5A4500', wrap:true });
+    footer(s, n);
+  }
+
+  // ── Slide 16: Efficiency 1 ──
+  n++; {
+    const s = pptx.addSlide();
+    titleBar(s, 'Process Automation & Efficiency Gains');
+    kpiRow(s, [{val:fmt(D.brokerSaving+D.declTimeSaving),label:'Customs process savings / year',color:C.green},{val:fmt(D.classLaborSaving),label:'Classification labor savings / year',color:C.green},{val:fmt(D.complianceTimeSaving),label:'Compliance team efficiency gain',color:C.green},{val:fmt(D.totalDutySaving),label:'Duty savings / year',color:C.green}], 1.06);
+    bulletBlock(s, [
+      {text:`End-to-end SAP integration: GTS compliance checks, customs declarations, and preference calculations happen as part of existing business processes with no data re-entry.`, sub:'Eliminates the swivel chair between ERP and standalone trade tools — saving 30–60 minutes per declaration'},
+      {text:`Automation of routine checks: Routine SPL screening, duty calculation, and document generation are 100% automated — your ${D.users} trade specialists focus on exception handling rather than data entry.`},
+      {text:`Reduced broker dependency: ${D.company} can file declarations directly via the Customs Connection interface. Typical customers bring 40–70% of declarations in-house within 18 months of go-live.`},
+      {text:'Year-1 ramp / learning curve: Year 1 savings are typically 40–60% of steady-state as processes are activated progressively via SAP Activate.'},
+    ], 0.5, 2.1, 9.0, 2.3);
+    s.addShape(pptx.ShapeType.rect, { x:0.5, y:4.52, w:9, h:0.46, fill:{color:C.light}, line:{color:C.border, pt:1} });
+    s.addText('Estimated Total Annual Value (all pillars)', { x:0.65, y:4.56, w:6, h:0.38, fontSize:11, bold:true, color:C.text });
+    s.addText(fmt(D.totalBenefit), { x:7.2, y:4.52, w:2.1, h:0.46, fontSize:20, bold:true, color:C.green, align:'right', valign:'middle' });
+    footer(s, n);
+  }
+
+  // ── Slide 17: Before vs After ──
+  n++; {
+    const s = pptx.addSlide();
+    titleBar(s, 'Before vs. After — GTS Transformation');
+    s.addTable([
+      [{text:'Process',options:{bold:true,color:C.white,fill:{color:C.shell},fontSize:8.5}},{text:'Before GTS',options:{bold:true,color:C.white,fill:{color:C.shell},fontSize:8.5}},{text:'After GTS',options:{bold:true,color:C.white,fill:{color:C.shell},fontSize:8.5}},{text:'Impact',options:{bold:true,color:C.white,fill:{color:C.shell},fontSize:8.5}}],
+      [{text:'Restricted Party Screening',options:{bold:true,fontSize:8.5}},{text:'Periodic batch / manual check',options:{fontSize:8.5}},{text:'Real-time, every transaction, 250+ lists',options:{fontSize:8.5}},{text:'Eliminates compliance gap',options:{bold:true,color:C.green,fontSize:8.5}}],
+      [{text:'Export Licence Determination',options:{bold:true,fontSize:8.5}},{text:'Manual ECCN lookup, spreadsheet',options:{fontSize:8.5}},{text:'Automatic at order entry',options:{fontSize:8.5}},{text:'70% time reduction',options:{bold:true,color:C.green,fontSize:8.5}}],
+      [{text:'Customs Declaration Filing',options:{bold:true,fontSize:8.5}},{text:'Manual data entry to broker portal',options:{fontSize:8.5}},{text:'Auto-generated from SAP, filed via Customs Connection',options:{fontSize:8.5}},{text:'60–75% cost reduction',options:{bold:true,color:C.green,fontSize:8.5}}],
+      [{text:'HS Code Classification',options:{bold:true,fontSize:8.5}},{text:'Spreadsheet, per-shipment lookup',options:{fontSize:8.5}},{text:'Centralised in SAP product master, auto-populated',options:{fontSize:8.5}},{text:'~60% labor saving',options:{bold:true,color:C.green,fontSize:8.5}}],
+      [{text:'Preference Determination',options:{bold:true,fontSize:8.5}},{text:'Ad-hoc, manual BOM review',options:{fontSize:8.5}},{text:'Automated origin calculation, auto CoO issuance',options:{fontSize:8.5}},{text:'Capture missed FTA savings',options:{bold:true,color:C.green,fontSize:8.5}}],
+      [{text:'Bonded Warehouse / FTZ',options:{bold:true,fontSize:8.5}},{text:'Manual stock ledger, spreadsheet',options:{fontSize:8.5}},{text:'Real-time inventory, automatic duty tracking',options:{fontSize:8.5}},{text:'Audit-ready at all times',options:{bold:true,color:C.green,fontSize:8.5}}],
+      [{text:'Customs Audit Response',options:{bold:true,fontSize:8.5}},{text:'2–4 weeks to compile records',options:{fontSize:8.5}},{text:'On-demand archive retrieval',options:{fontSize:8.5}},{text:'Days, not weeks',options:{bold:true,color:C.green,fontSize:8.5}}],
+    ], { x:0.5, y:1.06, w:9.0, rowH:0.44, border:{type:'solid',color:C.border,pt:1}, fill:{color:C.white}, fontFace:'Arial', colW:[1.85,2.2,2.7,2.25] });
+    footer(s, n);
+  }
+
+  // ── Slide 18: ROI ──
+  n++; {
+    const s = pptx.addSlide();
+    titleBar(s, `ROI Summary — SAP GTS for ${D.company}`, C.green);
+    const roiData = [
+      ['Customs broker fee reduction', fmt(D.brokerSaving)],
+      ['Declaration process time saving', fmt(D.declTimeSaving)],
+      ['Classification labor saving', fmt(D.classLaborSaving)],
+      ['Compliance team efficiency gain', fmt(D.complianceTimeSaving)],
+      ['FTA duty preference savings', fmt(D.ftaSaving)],
+      ['Special procedures duty savings', fmt(D.specialSaving)],
+    ].filter(r => r[1] !== fmt(0));
+
+    const tbl = [
+      [{text:'Value Driver',options:{bold:true,color:C.white,fill:{color:C.shell},fontSize:9}},{text:'Annual Benefit',options:{bold:true,color:C.white,fill:{color:C.shell},fontSize:9}}],
+      ...roiData.map(r => [{text:r[0],options:{fontSize:9}},{text:r[1],options:{bold:true,color:C.green,fontSize:9}}]),
+    ];
+    if (D.licCost > 0) {
+      tbl.push([{text:'Annual License Cost',options:{bold:true,color:C.red,fontSize:9}},{text:`−${fmt(D.licCost)}`,options:{bold:true,color:C.red,fontSize:9}}]);
+      if (D.implCost > 0) tbl.push([{text:'Implementation (amortised Y1)',options:{color:C.red,fontSize:9}},{text:`−${fmt(D.implCost/3)}`,options:{color:C.red,fontSize:9}}]);
+      tbl.push([{text:'Net Annual Benefit (Year 1)',options:{bold:true,fontSize:9,fill:{color:C.light}}},{text:fmt(D.netBenefit),options:{bold:true,color:C.green,fontSize:9,fill:{color:C.light}}}]);
+    }
+    s.addTable(tbl, { x:0.5, y:1.06, w:5.5, rowH:0.42, border:{type:'solid',color:C.border,pt:1}, fill:{color:C.white}, fontFace:'Arial' });
+
+    const hasLic = D.licCost > 0 || D.implCost > 0;
+    const mcs = hasLic
+      ? [{label:'Total Annual Benefit',val:fmt(D.totalBenefit),c:C.green},{label:'3-Year ROI',val:D.roi3yr!==null?D.roi3yr+'%':'N/A',c:C.blue},{label:'Payback Period',val:D.paybackMo!==null?D.paybackMo+' months':'N/A',c:C.gold}]
+      : [{label:'Total Annual Benefit',val:fmt(D.totalBenefit),c:C.green},{label:'License Cost',val:'Not entered',c:C.gray}];
+    const cardYs = [1.06, 2.06, 3.06];
+    mcs.forEach((mc, i) => {
+      if (!cardYs[i]) return;
+      s.addShape(pptx.ShapeType.rect, { x:6.2, y:cardYs[i], w:3.3, h:0.85, fill:{color:C.light}, line:{color:C.border, pt:1} });
+      s.addShape(pptx.ShapeType.rect, { x:6.2, y:cardYs[i], w:3.3, h:0.055, fill:{color:mc.c}, line:{color:mc.c, pt:0} });
+      s.addText(mc.val, { x:6.3, y:cardYs[i]+0.07, w:3.1, h:0.48, fontSize:20, bold:true, color:C.text, valign:'middle', shrinkText:true });
+      s.addText(mc.label, { x:6.3, y:cardYs[i]+0.57, w:3.1, h:0.24, fontSize:8.5, color:C.gray });
+    });
+    s.addShape(pptx.ShapeType.rect, { x:0.5, y:4.52, w:9, h:0.46, fill:{color:'FEF9E7'}, line:{color:C.gold, pt:1} });
+    s.addText('ROI figures cover licence cost only. Implementation costs should be factored into a full business case. Savings are steady-state (Year 2+); Year 1 typically 40–60% of stated values.', { x:0.65, y:4.55, w:8.7, h:0.4, fontSize:8, color:'5A4500', wrap:true });
+    footer(s, n);
+  }
+
+  // ── Slide 19: Assumptions ──
+  n++; {
+    const s = pptx.addSlide();
+    titleBar(s, 'Assumptions & Methodology', C.gray);
+    const ftaPct = Math.min(8 + D.ftas * 3, 30);
+    bulletBlock(s, [
+      {text:`Declaration volumes provided by ${D.company}: ${D.exports.toLocaleString()} exports, ${D.imports.toLocaleString()} imports, ${D.transit.toLocaleString()} transit per year.`},
+      {text:`Broker cost per declaration assumed at ${fmt(D.brokerCost)}; SAP GTS Customs Connection achieves 35% broker fee reduction in Year 1, rising to 50–60% in Year 2–3.`},
+      {text:`Classification labor: ${D.classHours.toLocaleString()} hrs/year at ${fmt(85)}/hr blended rate; GTS automates ~60% of classification workload.`},
+      {text:`Compliance time saving: ${D.users} FTE × 250 overhead hrs/yr × ${fmt(85)}/hr × 30% efficiency gain.`},
+    ], 0.5, 1.06, 4.6, 3.65);
+    bulletBlock(s, [
+      {text:`Duty spend mid-point used: ${D.dutySpend} band → ${fmt(D.dutyMid)} baseline.`},
+      {text:`FTA preference saving: estimated at ${ftaPct}% of duty spend; industry benchmark range 8–30%, increasing with each FTA actively managed in GTS.`},
+      {text:'All figures displayed in ' + D.currency + ' (' + CUR.symbol + ') as selected in the questionnaire.'},
+      {text:'Savings are annual steady-state (Year 2+); Year 1 savings are typically 40–60% of stated figures due to phased implementation.'},
+    ], 5.2, 1.06, 4.35, 3.35);
+    s.addShape(pptx.ShapeType.rect, { x:5.2, y:4.48, w:4.35, h:0.5, fill:{color:'FEF9E7'}, line:{color:C.gold, pt:1} });
+    s.addText('This presentation is a directional value case tool. A detailed business case should be completed with SAP and an implementation partner following a trade discovery workshop.', { x:5.35, y:4.52, w:4.05, h:0.42, fontSize:8, color:'5A4500', wrap:true });
+    footer(s, n);
+  }
+
+  // ── Slide 20: References ──
+  n++; {
+    const s = pptx.addSlide();
+    const dyn = D.dynamicRefs;
+    titleBar(s, 'References & Sources' + (dyn ? ` — AI-refreshed ${dyn.dataVintage}` : ''), C.gray);
+    const sapDocs = ['SAP GTS Help Portal — help.sap.com/docs/SAP_GTS','SAP GTS Product Page — sap.com/products/scm/global-trade-management','SAP Customs Management & Customs Connection','SAP Preference Processing Guide'];
+    const enforcement = dyn && dyn.industryEnforcement && dyn.industryEnforcement.recentCases
+      ? dyn.industryEnforcement.recentCases
+      : ['U.S. BIS Enforcement Actions — bis.doc.gov/enforcement/oce','U.S. OFAC Civil Penalties — ofac.treasury.gov/civil-penalties','EU Dual-Use Export Controls — ec.europa.eu/dual-use','WTO RTA Database — rtais.wto.org'];
+    const benchmarks = dyn && dyn.analystBenchmarks
+      ? dyn.analystBenchmarks
+      : ['E2open Global Trade & Tariff Impact Study','Aberdeen Group — Trade Compliance Benchmark Report','PwC Global Trade Management Study','KPMG Customs & Trade Benchmarking Survey'];
+
+    function refBox(bx, by, bw, bh, title, items) {
+      s.addShape(pptx.ShapeType.rect, { x:bx, y:by, w:bw, h:bh, fill:{color:C.light}, line:{color:C.border, pt:1} });
+      s.addText(title.toUpperCase(), { x:bx+0.1, y:by+0.07, w:bw-0.2, h:0.26, fontSize:7.5, bold:true, color:C.gray, charSpacing:0.5 });
+      bulletBlock(s, items.map(i => ({text:i})), bx+0.1, by+0.35, bw-0.2, bh-0.45);
+    }
+    refBox(0.5, 1.06, 4.45, 2.18, 'SAP Product Documentation', sapDocs);
+    refBox(5.05, 1.06, 4.45, 2.18, 'Industry Research & Benchmarks' + (dyn?' — AI refreshed':''), benchmarks);
+    refBox(0.5, 3.34, 4.45, 1.35, 'Regulatory & Enforcement Sources' + (dyn?' — AI refreshed':''), enforcement);
+    refBox(5.05, 3.34, 4.45, 1.35, 'Tariff & Classification Resources', ['WCO HS Nomenclature — wcoomd.org','U.S. ITC HTS Schedule — hts.usitc.gov','EU TARIC Database — ec.europa.eu/taric']);
+    const note = dyn ? `✓ References refreshed by Claude AI on ${dyn.dataVintage}.` : 'All enforcement case data sourced from public regulatory records. ROI benchmarks are industry estimates.';
+    s.addShape(pptx.ShapeType.rect, { x:0.5, y:4.78, w:9, h:0.38, fill:{color:dyn?'E8F5EE':'FEF9E7'}, line:{color:dyn?C.green:C.gold, pt:1} });
+    s.addText(note, { x:0.65, y:4.81, w:8.7, h:0.3, fontSize:8, color:dyn?'1A4A1A':'5A4500' });
+    footer(s, n);
+  }
+
+  await pptx.writeFile({ fileName: `SAP-GTS-${(D.company||'Business-Case').replace(/[^a-zA-Z0-9]+/g,'-')}.pptx` });
+}
+
+// ─── Slidewright slide functions ───
+
+function swCoverSlide() {
+  const date = new Date().toLocaleDateString('en-GB', {year:'numeric', month:'long'});
+  return `
+<section class="slide hero" data-part="Opening" data-end="3" data-t="Title">
+  <div class="hero-logo" role="img" aria-label="SAP"></div>
+  <h1>SAP Global Trade Services<br><b>Edition for HANA</b></h1>
+  <div class="rule"></div>
+  <p class="sub">Value Case and Return on Investment Analysis</p>
+  <div class="meta">
+    <div><b>Prepared for:</b>${D.company} — ${D.industry}</div>
+    <div><b>${date}</b>Directional analysis</div>
+  </div>
+  <div class="note"><p>Welcome the room and set context. This presentation is a directional ROI analysis for SAP GTS edition for HANA, built from the trade profile ${D.company} provided. The figures are benchmarks, not commitments — the goal is to identify the value levers worth investigating in more detail.</p></div>
+</section>`;
+}
+
+function swDisclaimerSlide() {
+  return `
+<section class="slide" data-t="Important Disclaimer">
+  <p class="eyebrow">Before We Start</p>
+  <h1 class="title">This output is a <b>directional tool</b>, not a committed business case</h1>
+  <div class="body">
+    <div class="vs">
+      <div class="card good">
+        <span class="k">Appropriate use</span>
+        <ul class="clean tight">
+          <li>Understand GTS value levers for ${D.company}</li>
+          <li>Prepare for a Value Advisory engagement</li>
+          <li>Identify areas for deeper discovery</li>
+          <li>Internal directional alignment and scoping</li>
+        </ul>
+      </div>
+      <div class="mid">BUT</div>
+      <div class="card bad">
+        <span class="k">Not intended for</span>
+        <ul class="clean tight">
+          <li>Budget commitment or procurement decisions</li>
+          <li>Board or executive approval submissions</li>
+          <li>Representation of SAP-committed savings</li>
+          <li>Replacement of a co-signed business case</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card banner">
+      <span class="chip">Next step</span>
+      <p>SAP's <b>Value Advisory team</b> conducts structured discovery workshops and produces a co-signed business case with full assumption traceability, suitable for executive approval.</p>
+    </div>
+  </div>
+  <div class="note"><p>Spend no more than a minute here. These figures are estimates based on industry benchmarks and the inputs provided. A proper business case needs a trade discovery workshop and access to actual transaction data. This deck identifies where the value is likely to sit.</p></div>
+</section>`;
+}
+
+function swAgendaSlide() {
+  return `
+<section class="slide" data-t="Agenda">
+  <p class="eyebrow">Today</p>
+  <h1 class="title">Four value pillars — one integrated platform</h1>
+  <div class="body">
+    <div class="cols c4">
+      <div class="card">
+        <span class="k">01</span>
+        <h3>Product Classification</h3>
+        <p>HS codes, ECCN, and classification cost for ${D.skus} SKUs across ${D.countries} countries.</p>
+      </div>
+      <div class="card accent">
+        <span class="k">02</span>
+        <h3>Trade Compliance</h3>
+        <p>Sanctioned party screening, embargo management, and export licence determination.</p>
+      </div>
+      <div class="card">
+        <span class="k">03</span>
+        <h3>Customs Operations</h3>
+        <p>${D.totalDecl.toLocaleString()} annual declarations — broker cost reduction and direct filing.</p>
+      </div>
+      <div class="card">
+        <span class="k">04</span>
+        <h3>Trade Preference</h3>
+        <p>${D.ftas} FTA agreement(s), duty savings, and special procedures management.</p>
+      </div>
+    </div>
+    <div class="card gold banner">
+      <div class="big gold">+</div>
+      <p>Process automation and efficiency gains | ROI summary | Assumptions and methodology</p>
+    </div>
+  </div>
+  <div class="note"><p>Walk through the four pillars. Each section pairs the current-state cost or risk with the GTS capability that addresses it. The final section pulls the numbers together into an ROI summary.</p></div>
+</section>`;
+}
+
+function swSectionClassification() {
+  return `
+<section class="slide divider" data-part="01 Product Classification" data-end="10" data-t="▸ 01 Product Classification">
+  <div class="num">01</div>
+  <h2>Product Classification</h2>
+  <div class="rule"></div>
+  <p>Managing HS codes, export control classifications, and product master data accurately across ${D.countries} countries of operation with ${D.skus} active SKUs.</p>
+  <div class="note"><p>Transition to classification. Key message: classification is the foundation of every GTS process. An error here cascades into compliance, customs, and preference downstream.</p></div>
+</section>`;
+}
+
+function swClassificationValue1() {
+  return `
+<section class="slide" data-t="Classification Hidden Cost">
+  <p class="eyebrow">01 Product Classification</p>
+  <h1 class="title">Manual classification is costly and error-prone at <b>${D.skus} SKUs</b></h1>
+  <div class="body">
+    <div class="stats">
+      <div class="stat"><div class="n">${D.skus}</div><p>Active SKUs requiring classification and maintenance</p></div>
+      <div class="stat gold"><div class="n">20–40%</div><p>Industry mis-classification rate for manual processes</p><span class="src">PwC Global Trade Study 2022</span></div>
+      <div class="stat"><div class="n">${fmt(D.classLabor)}</div><p>Estimated annual classification labour cost</p><span class="src">At ${fmt(85)}/hr blended rate</span></div>
+      <div class="stat teal"><div class="n">${fmt(D.classLaborSaving)}</div><p>Potential annual saving with GTS automation</p><span class="src">~60% automation rate</span></div>
+    </div>
+    <ul class="clean">
+      <li><b>HS code divergence.</b> With ${D.countries} active countries, each jurisdiction maintains its own tariff schedule. GTS centralises this into a single classification workbench covering CN, HTS, TARIC, and country-specific schedules.</li>
+      <li><b>Export control classification.</b> Manual ECCN determination for ${D.skus} SKUs creates compliance exposure${D.controlled === 'Yes' ? ', especially with a confirmed dual-use or military product portfolio' : ''}. GTS integrates ECCN with SPL screening and licence determination automatically.</li>
+      <li><b>New product introduction speed.</b> GTS reduces time-to-classify by up to 70% via classification proposals, rules-based engines, and a classification cockpit with deadline tracking.</li>
+    </ul>
+  </div>
+  <div class="note"><p>Walk the stats left to right. The gold figure is the risk; the teal figure is the upside. The three bullet points explain why manual processes fail at scale — the sheer volume of SKUs and country-specific schedules makes a spreadsheet approach unsustainable.</p></div>
+</section>`;
+}
+
+function swClassificationValue2() {
+  return `
+<section class="slide" data-t="GTS Classification Capabilities">
+  <p class="eyebrow">01 Product Classification</p>
+  <h1 class="title">GTS classification is the <b>foundation</b> for every downstream trade process</h1>
+  <div class="body">
+    <div class="cols c2">
+      <div class="stack">
+        <div class="card">
+          <span class="k">Centralised master</span>
+          <h3>One HS/ECCN per material</h3>
+          <p>Classification set once in the product master, reused across all SAP transactions. No duplicate effort per shipment.</p>
+        </div>
+        <div class="card">
+          <span class="k">Multi-country</span>
+          <h3>Parallel tariff schedules</h3>
+          <p>Maintain CN, HTS, TARIC classifications for different destination countries in a single master record.</p>
+        </div>
+        <div class="card">
+          <span class="k">AI-assisted</span>
+          <h3>Classification proposals</h3>
+          <p>GTS suggests HS codes based on existing data patterns, reducing manual research time by 50–70%.</p>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="card accent">
+          <span class="k">Compliance link</span>
+          <h3>ECCN drives licence checks</h3>
+          <p>Export control number integrates with SPL screening and licence determination automatically at order entry.</p>
+        </div>
+        <div class="card">
+          <span class="k">Audit-ready</span>
+          <h3>Full version history</h3>
+          <p>Every classification change versioned with user, date, and reason. Essential for customs audits and post-shipment reviews.</p>
+        </div>
+        <div class="card">
+          <span class="k">Preference link</span>
+          <h3>Origin at component level</h3>
+          <p>GTS manages origin data per component to calculate preferential origin for finished goods, feeding directly into certificate of origin issuance.</p>
+        </div>
+      </div>
+    </div>
+    <p class="foot-note">Classification errors cascade downstream: a wrong HS code affects customs duty calculation, preference eligibility, and embargo checks simultaneously.</p>
+  </div>
+  <div class="note"><p>Emphasise the cascade effect in the footnote. One correct classification in GTS fixes every downstream process that depends on it. That is the integration advantage over standalone classification tools.</p></div>
+</section>`;
+}
+
+function swSectionCompliance() {
+  return `
+<section class="slide divider" data-part="02 Trade Compliance" data-end="20" data-t="▸ 02 Trade Compliance">
+  <div class="num">02</div>
+  <h2>Trade Compliance</h2>
+  <div class="rule"></div>
+  <p>Managing sanctioned party screening, embargo management, and export licence determination${D.controlled === 'Yes' ? ' for export-controlled products' : ''} across ${D.countries} countries of operation.</p>
+  <div class="note"><p>The compliance section is the risk story. Lead with the enforcement precedent for ${D.industry} — make it concrete and industry-specific before presenting the GTS solution.</p></div>
+</section>`;
+}
+
+function swComplianceRisk() {
+  return `
+<section class="slide" data-t="Compliance Risk Exposure">
+  <p class="eyebrow">02 Trade Compliance</p>
+  <h1 class="title"><b>${D.industry}</b> faces material enforcement exposure across ${D.exports.toLocaleString()} annual export transactions</h1>
+  <div class="body">
+    <div class="stats">
+      <div class="stat gold"><div class="n">Up to ${fmt(D.risk.max)}</div><p>Maximum single enforcement penalty in ${D.industry}</p></div>
+      <div class="stat"><div class="n">${D.countries}</div><p>Jurisdictions requiring active SPL screening</p></div>
+      <div class="stat"><div class="n">${D.exports.toLocaleString()}</div><p>Export transactions per year at compliance risk</p></div>
+    </div>
+    <div class="cols c-3-2">
+      <ul class="clean">
+        <li><b>Industry precedent.</b> ${D.risk.ex}</li>
+        <li><b>Restricted party screening gaps.</b> Manual or periodic screening leaves exposure windows between checks. GTS performs real-time screening at order entry, delivery creation, and billing across OFAC SDN, BIS Entity List, EU Consolidated List, and 200+ further lists.</li>
+        <li><b>False positive burden.</b> Without intelligent fuzzy matching, compliance teams spend 60–80% of their time clearing false positives. GTS scoring algorithms reduce these by up to 40%.</li>
+        ${D.controlled === 'Yes' ? '<li><b>Export violations.</b> Under EAR, violations carry up to $1M per transaction. ITAR: up to $1.3M per violation. A single undetected controlled shipment to a restricted party creates material legal exposure.</li>' : ''}
+      </ul>
+      <div class="card gold">
+        <span class="k">Coverage</span>
+        <h3>250+ watchlists</h3>
+        <p>OFAC SDN, BIS Entity List, EU Consolidated, UN, and 200+ government and commercial lists — checked in real time.</p>
+      </div>
+    </div>
+  </div>
+  <div class="note"><p>Start with the industry precedent — a real number from a real case in ${D.industry}. This is not a prediction; it shows the scale of what enforcement actually looks like. Then move to the screening gap: the problem is not bad intent, it is that manual screening cannot keep pace with transaction volume.</p></div>
+</section>`;
+}
+
+function swComplianceGTS() {
+  return `
+<section class="slide" data-t="GTS Eliminates Compliance Exposure">
+  <p class="eyebrow">02 Trade Compliance</p>
+  <h1 class="title">GTS compliance checks run <b>inside</b> SAP business processes — not after the fact</h1>
+  <div class="body">
+    <div class="cols c4">
+      <div class="card accent">
+        <span class="k">Real-time</span>
+        <h3>SPL Screening</h3>
+        <p>Integrated at SD order entry, delivery, billing, and MM purchase orders. Configurable holds and workflow escalation for review.</p>
+      </div>
+      <div class="card">
+        <span class="k">Automatic</span>
+        <h3>Licence Determination</h3>
+        <p>ECCN plus country plus end-user drives licence determination at order entry. Consumption tracking and expiry alerts built in.</p>
+      </div>
+      <div class="card">
+        <span class="k">Up to date</span>
+        <h3>Embargo Management</h3>
+        <p>Country-of-destination embargo checks updated via SAP Compliance Link Data. Re-export control tracks US-origin content rules automatically.</p>
+      </div>
+      <div class="card">
+        <span class="k">Audit-ready</span>
+        <h3>Compliance Cockpit</h3>
+        <p>Full audit trail: who screened, when, which list, and what result. Blocked shipment management with reason codes and periodic re-screening.</p>
+      </div>
+    </div>
+    <div class="card accent banner">
+      <div class="big acc">${fmt(D.complianceTimeSaving)}</div>
+      <p>Estimated annual compliance team efficiency gain — ${D.users} FTE at 30% time saving on routine screening and licence management.</p>
+    </div>
+  </div>
+  <div class="note"><p>The key differentiator is integration: no separate tool login, no CSV export to a screening system. The check happens at the moment the transaction is created, which is when it is cheap to stop. After the goods leave the warehouse, the cost of a violation is the enforcement penalty, not a hold message.</p></div>
+</section>`;
+}
+
+function swSectionCustoms() {
+  return `
+<section class="slide divider" data-part="03 Customs Operations" data-end="30" data-t="▸ 03 Customs Operations">
+  <div class="num">03</div>
+  <h2>Customs Operations</h2>
+  <div class="rule"></div>
+  <p>Automating ${D.totalDecl.toLocaleString()} annual declarations across ${D.countries} countries — reducing broker dependency and accelerating customs clearance.</p>
+  <div class="note"><p>Customs is the highest-volume, most measurable value area. The numbers here come directly from the trade profile provided.</p></div>
+</section>`;
+}
+
+function swCustomsValue1() {
+  return `
+<section class="slide" data-t="Customs Volume and Cost Baseline">
+  <p class="eyebrow">03 Customs Operations</p>
+  <h1 class="title"><b>${fmt(D.brokerSpend)}</b> in annual broker fees on ${D.totalDecl.toLocaleString()} declarations</h1>
+  <div class="body">
+    <div class="stats">
+      <div class="stat"><div class="n">${D.exports.toLocaleString()}</div><p>Export declarations per year</p></div>
+      <div class="stat"><div class="n">${D.imports.toLocaleString()}</div><p>Import declarations per year</p></div>
+      <div class="stat gold"><div class="n">${fmt(D.brokerSpend)}</div><p>Estimated annual broker fees</p><span class="src">At ${fmt(D.brokerCost)}/declaration</span></div>
+      <div class="stat teal"><div class="n">${fmt(D.brokerSaving)}</div><p>Estimated broker fee reduction with GTS</p><span class="src">35% Year 1 reduction</span></div>
+    </div>
+    <table class="t">
+      <thead><tr><th>Cost driver</th><th>Current state</th><th>With GTS</th><th>Annual saving</th></tr></thead>
+      <tbody>
+        <tr><td><b>Broker fees (${D.broker} declarations outsourced)</b></td><td>${fmt(D.brokerSpend)}</td><td>${fmt(D.brokerSpend - D.brokerSaving)}</td><td><b>${fmt(D.brokerSaving)}</b></td></tr>
+        <tr><td><b>Declaration preparation time</b></td><td>18–25 min/declaration</td><td>5–8 min/declaration</td><td><b>${fmt(D.declTimeSaving)}</b></td></tr>
+        <tr><td><b>Duty errors and overpayments (est. 3–5%)</b></td><td>${fmt(D.dutyMid * 0.04)}</td><td>${fmt(D.dutyMid * 0.01)}</td><td><b>${fmt(D.dutyMid * 0.03)}</b></td></tr>
+      </tbody>
+    </table>
+    <p class="foot-note">SAP GTS Customs Connection enables direct self-filing and broker integrations in 50+ countries, replacing manual broker submission for a significant portion of declarations.</p>
+  </div>
+  <div class="note"><p>Start with the broker fee line — it is the most tangible and the one the finance team will recognise from invoices. Then move to the declaration time saving: at ${D.totalDecl.toLocaleString()} declarations per year, even a few minutes per declaration adds up quickly.</p></div>
+</section>`;
+}
+
+function swCustomsValue2() {
+  const special = [];
+  if (D.bonded === 'Yes') special.push('Bonded Warehouse (inward processing, customs warehouse)');
+  if (D.ftz === 'Yes') special.push('Free Trade Zone management');
+  const specialText = special.length > 0 ? special.join(' and ') : 'Special Customs Procedures';
+  return `
+<section class="slide" data-t="GTS Customs Capabilities">
+  <p class="eyebrow">03 Customs Operations</p>
+  <h1 class="title">GTS automates the full customs lifecycle — from <b>declaration filing</b> to <b>audit response</b></h1>
+  <div class="body">
+    <div class="cols c2">
+      <ul class="clean">
+        <li><b>Electronic customs filing.</b> GTS generates and transmits declarations directly to government systems (AES, CHIEF/CDS, ATLAS) or via broker integrations across 50+ countries.</li>
+        <li><b>Automated document generation.</b> Commercial invoices, packing lists, certificates of origin, EUR.1, REX declarations — all auto-generated from SAP data. Eliminates 40–60% of customs document preparation time.</li>
+        <li><b>Duty calculation and landed costs.</b> GTS computes duties per declaration and feeds import condition types in MM, supporting accurate landed cost and duty accrual processes.</li>
+        <li><b>${specialText}.</b> GTS tracks goods movements in and out of bonded or FTZ regimes, calculates suspended duty balances, and triggers automatic duty crystallisation on regime exit.</li>
+      </ul>
+      <ul class="clean">
+        <li><b>AEO and trusted trader programmes.</b> GTS supports AEO condition monitoring, helping ${D.company} maintain authorised economic operator status with faster clearance and reduced examination rates.</li>
+        <li><b>Inward/Outward Processing Relief.</b> GTS manages IP/OP authorisations, tracks material consumption, and calculates specific commercial policy measures — typically recovering 5–15% additional duties for manufacturers.</li>
+        <li><b>Customs audit readiness.</b> Complete declaration archive with entry and exit data, duty calculations, and document links. Audits that previously took weeks can be handled in days.</li>
+        <li><b>CPC optimisation.</b> GTS classifies each shipment to the most beneficial customs procedure code, ensuring maximum use of available duty reliefs.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="note"><p>Emphasise end-to-end lifecycle management: most trade teams have a customs filing tool; what they rarely have is the connection between the SAP business process, the declaration, the duty calculation, and the audit archive all in one system.</p></div>
+</section>`;
+}
+
+function swSectionPreference() {
+  return `
+<section class="slide divider" data-part="04 Trade Preference" data-end="40" data-t="▸ 04 Trade Preference">
+  <div class="num">04</div>
+  <h2>Trade Preference and Duty Savings</h2>
+  <div class="rule"></div>
+  <p>Maximising FTA utilisation across ${D.ftas} agreement(s), automating preference determination, and managing certificates of origin for ${D.exports.toLocaleString()} annual exports.</p>
+  <div class="note"><p>The preference section is where cash is left on the table. The key insight: most companies that qualify for FTA preference don't claim it, because BOM-level origin determination is too complex to do manually.</p></div>
+</section>`;
+}
+
+function swPreferenceValue() {
+  const ftaSaveFmt = fmt(D.ftaSaving);
+  const totalFmt = fmt(D.totalDutySaving);
+  const ftaPct = Math.min(8 + D.ftas * 3, 30);
+  return `
+<section class="slide" data-t="Trade Preference Duty Savings">
+  <p class="eyebrow">04 Trade Preference</p>
+  <h1 class="title">30–60% of qualifying FTA preference goes <b>unclaimed</b> without automation</h1>
+  <div class="body">
+    <div class="stats">
+      <div class="stat"><div class="n">${D.ftas}</div><p>Active FTAs to optimise</p></div>
+      <div class="stat"><div class="n">${D.dutySpend}</div><p>Annual duty spend baseline</p></div>
+      <div class="stat teal"><div class="n">${ftaSaveFmt}</div><p>Estimated FTA preference savings</p><span class="src">${ftaPct}% of duty spend</span></div>
+      ${D.specialSaving > 0 ? `<div class="stat teal"><div class="n">${fmt(D.specialSaving)}</div><p>Special procedures duty savings</p><span class="src">12% on applicable duty spend</span></div>` : ''}
+    </div>
+    <ul class="clean">
+      <li><b>Vendor declaration management.</b> GTS automates collection and validity tracking of long-term supplier declarations — the foundation of EU preferential origin. Reminder workflows chase suppliers automatically before declarations expire.</li>
+      <li><b>Bill-of-materials origin calculation.</b> GTS analyses each finished good's BOM components and their origin, applies the relevant rule of origin, and determines preference eligibility automatically.</li>
+      <li><b>Certificate of origin issuance.</b> GTS auto-generates EUR.1, Form A, REX statements, and country-specific certificates of origin — eliminating manual preparation and potential errors that lead to duty reclaim.</li>
+    </ul>
+    <div class="card gold banner">
+      <div class="big gold">${totalFmt}</div>
+      <p>Estimated total annual duty savings — FTA preference plus special procedures.</p>
+    </div>
+  </div>
+  <div class="note"><p>The 30–60% unclaimed figure is the hook. Even companies that have signed FTAs often can't claim preference because they can't prove origin at the component level. GTS solves this with the BOM origin calculation engine. The banner number is the punchline — bring it back in the ROI summary.</p></div>
+</section>`;
+}
+
+function swPreferenceSpecial() {
+  return `
+<section class="slide" data-t="Special Procedures Duty Deferral">
+  <p class="eyebrow">04 Trade Preference</p>
+  <h1 class="title">Special customs procedures turn compliance obligations into <b>cash flow advantages</b></h1>
+  <div class="body">
+    <div class="cols c4">
+      <div class="card">
+        <span class="k">Defer</span>
+        <h3>Bonded Warehouse</h3>
+        <p>Duty deferred until goods enter free circulation. GTS tracks all stock movements and calculates duty balances in real time.</p>
+      </div>
+      <div class="card accent">
+        <span class="k">Recover</span>
+        <h3>Inward Processing Relief</h3>
+        <p>Tracks imported raw materials through manufacturing to exported finished goods. Calculates relief on duties that would otherwise apply.</p>
+      </div>
+      <div class="card">
+        <span class="k">Eliminate</span>
+        <h3>Free Trade Zone</h3>
+        <p>GTS manages FTZ inventory and duty-free status, weekly entry filing programmes, and zone-to-zone transfers under US CBP and equivalent regimes.</p>
+      </div>
+      <div class="card">
+        <span class="k">Control</span>
+        <h3>Temporary Admission</h3>
+        <p>Manages temporary export and import for processing, repair, or exhibition. Tracks re-importation deadlines to avoid duty crystallisation.</p>
+      </div>
+    </div>
+    <div class="card banner">
+      <span class="chip">Key point</span>
+      <p>Each procedure requires precise tracking and timely filing — GTS makes this automatic rather than a manual burden on ${D.company}'s ${D.users} trade team members.</p>
+    </div>
+  </div>
+  <div class="note"><p>Position each card as a regime GTS can manage. Even if ${D.company} only uses one or two today, the platform supports the full set — so expansion into other regimes requires no new systems. Close on the banner: ${D.users} people doing this manually versus GTS doing it automatically.</p></div>
+</section>`;
+}
+
+function swEfficiencySlide1() {
+  return `
+<section class="slide" data-part="05 Process Automation" data-end="47" data-t="Process Automation and Efficiency">
+  <p class="eyebrow">05 Process Automation</p>
+  <h1 class="title">End-to-end SAP integration eliminates <b>swivel-chair</b> between trade tools and ERP</h1>
+  <div class="body">
+    <div class="stats">
+      <div class="stat teal"><div class="n">${fmt(D.brokerSaving + D.declTimeSaving)}</div><p>Customs process savings per year</p></div>
+      <div class="stat teal"><div class="n">${fmt(D.classLaborSaving)}</div><p>Classification labour savings per year</p></div>
+      <div class="stat teal"><div class="n">${fmt(D.complianceTimeSaving)}</div><p>Compliance team efficiency gain per year</p></div>
+      <div class="stat teal"><div class="n">${fmt(D.totalDutySaving)}</div><p>Duty savings per year</p></div>
+    </div>
+    <ul class="clean">
+      <li><b>Embedded in SAP.</b> GTS compliance checks, customs declarations, and preference calculations happen as part of existing business processes with no data re-entry — saving 30–60 minutes per declaration.</li>
+      <li><b>Automation of routine checks.</b> Routine SPL screening, duty calculation, and document generation are 100% automated. ${D.company}'s ${D.users} trade specialists focus on exception handling rather than data entry.</li>
+      <li><b>Reduced broker dependency.</b> Typical customers bring 40–70% of declarations in-house within 18 months of go-live, retaining control and reducing cost progressively.</li>
+    </ul>
+    <div class="card gold banner">
+      <div class="big gold">${fmt(D.totalBenefit)}</div>
+      <p>Estimated total annual value across all four pillars — steady-state Year 2 onwards.</p>
+    </div>
+  </div>
+  <div class="note"><p>This is the efficiency aggregation slide. The four stats show each value stream at a glance. Key message: GTS doesn't add a step to the business process, it runs inside it. The banner number is the total — use it to anchor the ROI summary coming next.</p></div>
+</section>`;
+}
+
+function swEfficiencySlide2() {
+  return `
+<section class="slide" data-t="Before vs After GTS">
+  <p class="eyebrow">05 Process Automation</p>
+  <h1 class="title">GTS transforms <b>reactive compliance</b> into embedded, automated trade management</h1>
+  <div class="body">
+    <table class="t">
+      <thead><tr><th>Process</th><th>Before GTS</th><th>After GTS</th><th>Impact</th></tr></thead>
+      <tbody>
+        <tr><td><b>Restricted Party Screening</b></td><td>Periodic batch or manual check</td><td>Real-time, every transaction, 250+ lists</td><td><b>Eliminates compliance gap</b></td></tr>
+        <tr><td><b>Export Licence Determination</b></td><td>Manual ECCN lookup, spreadsheet tracking</td><td>Automatic at order entry</td><td><b>70% time reduction</b></td></tr>
+        <tr><td><b>Customs Declaration Filing</b></td><td>Manual data entry to broker portal</td><td>Auto-generated from SAP, filed via Customs Connection</td><td><b>60–75% cost reduction</b></td></tr>
+        <tr><td><b>HS Code Classification</b></td><td>Spreadsheet, per-shipment lookup</td><td>Centralised in SAP product master, auto-populated</td><td><b>~60% labour saving</b></td></tr>
+        <tr><td><b>Preference Determination</b></td><td>Ad hoc, manual BOM review</td><td>Automated origin calculation, auto certificate issuance</td><td><b>Capture missed FTA savings</b></td></tr>
+        <tr><td><b>Bonded/FTZ Tracking</b></td><td>Manual stock ledger, spreadsheet</td><td>Real-time inventory, automatic duty tracking</td><td><b>Audit-ready at all times</b></td></tr>
+        <tr><td><b>Customs Audit Response</b></td><td>2–4 weeks to compile records</td><td>On-demand archive retrieval</td><td><b>Days, not weeks</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note"><p>Use this as a transformation summary. Walk through two or three rows most relevant to the room. The pattern is always the same: manual, error-prone, and periodic becomes automatic, integrated, and real-time. The impact column is the business case in seven words per row.</p></div>
+</section>`;
+}
+
+function swRoiSlide() {
+  const roiRows = [
+    { label: 'Customs broker fee reduction', val: D.brokerSaving },
+    { label: 'Declaration process time saving', val: D.declTimeSaving },
+    { label: 'Classification labour saving', val: D.classLaborSaving },
+    { label: 'Compliance team efficiency gain', val: D.complianceTimeSaving },
+    { label: 'FTA duty preference savings', val: D.ftaSaving },
+    { label: 'Special procedures duty savings', val: D.specialSaving },
+  ].filter(r => r.val > 0);
+
+  const rowsHtml = roiRows.map(r =>
+    `<tr><td>${r.label}</td><td><b>${fmt(r.val)}</b></td></tr>`
+  ).join('');
+
+  const hasLic = D.licCost > 0 || D.implCost > 0;
+
+  const licRows = hasLic ? `
+        <tr><td><b>Annual licence cost</b></td><td style="color:#AA0808"><b>−${fmt(D.licCost)}</b></td></tr>
+        ${D.implCost > 0 ? `<tr><td><b>Implementation (amortised Y1)</b></td><td style="color:#AA0808"><b>−${fmt(D.implCost / 3)}</b></td></tr>` : ''}
+        <tr><td><b>Net annual benefit (Year 1)</b></td><td><b>${fmt(D.netBenefit)}</b></td></tr>` : '';
+
+  const metricCards = hasLic ? `
+      <div class="card accent">
+        <span class="k">Total annual benefit</span>
+        <h3>${fmt(D.totalBenefit)}</h3>
+        <p>Steady-state Year 2 onwards across all pillars.</p>
+      </div>
+      <div class="card">
+        <span class="k">3-year ROI</span>
+        <h3>${D.roi3yr !== null ? D.roi3yr + '%' : 'N/A'}</h3>
+        <p>Net benefit over 3 years versus total investment.</p>
+      </div>
+      <div class="card">
+        <span class="k">Payback period</span>
+        <h3>${D.paybackMo !== null ? D.paybackMo + ' months' : 'N/A'}</h3>
+        <p>Estimated time to recover full licence and implementation cost.</p>
+      </div>` : `
+      <div class="card accent">
+        <span class="k">Total annual benefit</span>
+        <h3>${fmt(D.totalBenefit)}</h3>
+        <p>Steady-state Year 2 onwards across all pillars.</p>
+      </div>
+      <div class="card gold">
+        <span class="k">Licence cost</span>
+        <h3>Not entered</h3>
+        <p>Add your SAP GTS quote to see full ROI and payback metrics.</p>
+      </div>`;
+
+  return `
+<section class="slide" data-part="06 ROI Summary" data-end="52" data-t="ROI Summary">
+  <p class="eyebrow">06 ROI Summary</p>
+  <h1 class="title">SAP GTS ROI for <b>${D.company}</b> — annual value breakdown</h1>
+  <div class="body">
+    <div class="cols c-3-2">
+      <table class="t">
+        <thead><tr><th>Value driver</th><th>Annual benefit</th></tr></thead>
+        <tbody>
+          ${rowsHtml}
+          ${licRows}
+        </tbody>
+      </table>
+      <div class="stack">
+        ${metricCards}
+      </div>
+    </div>
+    <p class="foot-note">Year 1 savings are typically 40–60% of steady-state as processes are activated progressively. Implementation cost excluded from the ROI model unless entered in the questionnaire.</p>
+  </div>
+  <div class="note"><p>Walk the table row by row — each line maps back to a section the room has just heard. Then point to the metrics cards on the right. If licence cost was not entered, invite the question: "When you have a quote, we can run the full payback calculation."</p></div>
+</section>`;
+}
+
+function swAssumptionsSlide() {
+  const ftaPct = Math.min(8 + D.ftas * 3, 30);
+  return `
+<section class="slide" data-t="Assumptions and Methodology">
+  <p class="eyebrow">Appendix</p>
+  <h1 class="title">Key inputs and assumptions used in this analysis</h1>
+  <div class="body">
+    <div class="cols c2">
+      <ul class="clean">
+        <li><b>Declaration volumes.</b> Provided by ${D.company}: ${D.exports.toLocaleString()} exports, ${D.imports.toLocaleString()} imports, ${D.transit.toLocaleString()} transit per year.</li>
+        <li><b>Broker cost.</b> ${fmt(D.brokerCost)}/declaration. GTS Customs Connection achieves 35% broker fee reduction in Year 1, rising to 50–60% in Year 2 onwards.</li>
+        <li><b>Classification labour.</b> ${D.classHours.toLocaleString()} hrs/year at ${fmt(85)}/hr blended rate. GTS automates approximately 60% of classification workload.</li>
+        <li><b>Compliance time saving.</b> ${D.users} FTE multiplied by 250 overhead hours per year multiplied by ${fmt(85)}/hr multiplied by 30% efficiency gain.</li>
+        <li><b>Duty spend mid-point.</b> ${D.dutySpend} band — ${fmt(D.dutyMid)} used as baseline for preference and special procedure calculations.</li>
+      </ul>
+      <ul class="clean">
+        <li><b>FTA preference saving.</b> Estimated at ${ftaPct}% of duty spend — industry benchmark range 8–30%, increasing with each FTA actively managed in GTS.</li>
+        ${D.specialSaving > 0 ? `<li><b>Special procedures.</b> ${D.bonded === 'Yes' ? 'Bonded warehouse' : ''}${D.bonded === 'Yes' && D.ftz === 'Yes' ? ' and ' : ''}${D.ftz === 'Yes' ? 'FTZ' : ''}: 12% duty saving assumption on applicable duty spend.</li>` : ''}
+        <li><b>Enforcement precedents.</b> ${D.industry} cases sourced from public regulatory records (BIS, OFAC, DOJ). Maximum fine shown is a precedent, not a prediction.</li>
+        <li><b>Year 1 ramp.</b> Year 1 savings typically 40–60% of steady-state due to phased implementation. All figures shown are steady-state Year 2 onwards.</li>
+        <li><b>Currency.</b> All figures displayed in ${D.currency} (${CUR.symbol}). Duty spend input assumed in ${D.currency}.</li>
+      </ul>
+    </div>
+    <p class="foot-note">Sources: SAP GTS Help Documentation; PwC, KPMG Global Trade Studies; Aberdeen Group; E2open Global Trade Benchmark; BIS/OFAC public enforcement records.</p>
+  </div>
+  <div class="note"><p>This slide is for reference during Q&A. Walk through it only if someone challenges the methodology. Key messages: the inputs came from ${D.company}'s own trade profile, the benchmarks are from named public sources, and the figures are directional estimates, not commitments.</p></div>
+</section>`;
+}
+
+function swReferencesSlide() {
+  const dyn = D.dynamicRefs;
+
+  const benchmarks = dyn && dyn.analystBenchmarks
+    ? dyn.analystBenchmarks.map(b => `<li>${b}</li>`).join('')
+    : `<li>E2open Global Trade and Tariff Impact Study</li>
+       <li>Aberdeen Group — Trade Compliance Benchmark Report</li>
+       <li>PwC Global Trade Management Study</li>
+       <li>KPMG Customs and Trade Benchmarking Survey</li>`;
+
+  const enforcementCases = dyn && dyn.industryEnforcement && dyn.industryEnforcement.recentCases
+    ? dyn.industryEnforcement.recentCases.map(c => `<li>${c}</li>`).join('')
+    : `<li>U.S. BIS Enforcement Actions — bis.doc.gov/enforcement/oce</li>
+       <li>U.S. OFAC Civil Penalties — ofac.treasury.gov/civil-penalties</li>
+       <li>EU Dual-Use Export Controls — ec.europa.eu/dual-use</li>
+       <li>WTO RTA Database — rtais.wto.org</li>`;
+
+  const vintageNote = dyn
+    ? `References refreshed by Claude AI on ${dyn.dataVintage}. Enforcement data and benchmarks reflect industry knowledge up to model training cutoff.`
+    : `All enforcement case data sourced from public regulatory records. ROI benchmarks are industry estimates — actual results depend on scope, implementation quality, and operational maturity.`;
+
+  return `
+<section class="slide" data-t="References and Sources">
+  <p class="eyebrow">Appendix</p>
+  <h1 class="title">References and sources used in this analysis${dyn ? ' <span style="font-size:0.6em;font-weight:400;color:#188918">(AI-refreshed ' + dyn.dataVintage + ')</span>' : ''}</h1>
+  <div class="body">
+    <div class="cols c2">
+      <div class="stack">
+        <div class="card">
+          <span class="k">SAP product documentation</span>
+          <h3>SAP GTS Help Portal</h3>
+          <ul class="clean tight">
+            <li>SAP GTS Help — help.sap.com/docs/SAP_GTS</li>
+            <li>SAP Customs Management and Customs Connection</li>
+            <li>SAP Preference Processing Guide</li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="k">Industry research${dyn ? ' — AI refreshed' : ''}</span>
+          <h3>Benchmarks and studies</h3>
+          <ul class="clean tight">
+            ${benchmarks}
+          </ul>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="card">
+          <span class="k">Regulatory enforcement${dyn ? ' — AI refreshed' : ''}</span>
+          <h3>Recent enforcement cases</h3>
+          <ul class="clean tight">
+            ${enforcementCases}
+          </ul>
+        </div>
+        <div class="card">
+          <span class="k">Tariff resources</span>
+          <h3>Classification references</h3>
+          <ul class="clean tight">
+            <li>WCO HS Nomenclature — wcoomd.org/nomenclature</li>
+            <li>U.S. ITC HTS Schedule — hts.usitc.gov</li>
+            <li>EU TARIC Database — ec.europa.eu/taric</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <p class="foot-note">${vintageNote}</p>
+  </div>
+  <div class="note"><p>Leave this slide up during open Q&A. If someone questions a specific figure, point to the relevant source here.</p></div>
+</section>`;
+}
+
+function swCloseSlide() {
+  return `
+<section class="slide hero" data-t="Close">
+  <div class="hero-logo" role="img" aria-label="SAP"></div>
+  <h1>One platform. Every trade process. <b>Built into SAP.</b></h1>
+  <div class="rule"></div>
+  <p class="sub">SAP Global Trade Services — Edition for HANA</p>
+  <div class="meta">
+    <div><b>Next step:</b>Schedule a Value Advisory workshop</div>
+    <div><b>More information:</b>sap.com/products/scm/global-trade-management</div>
+    <div><b>Prepared for:</b>${D.company} — ${D.industry}</div>
+  </div>
+  <div class="note"><p>Land the one line: one platform, every trade process, built into SAP. Let it sit for a moment. Then move to next steps: schedule a Value Advisory workshop to validate these figures with actual transaction data from ${D.company}'s systems. Leave the PDF with the room.</p></div>
+</section>`;
+}
+
+function generateSlidewrightDeck() {
   collectAnswers();
+
+  const slides = [
+    swCoverSlide(),
+    swDisclaimerSlide(),
+    swAgendaSlide(),
+    swSectionClassification(),
+    swClassificationValue1(),
+    swClassificationValue2(),
+    swSectionCompliance(),
+    swComplianceRisk(),
+    swComplianceGTS(),
+    swSectionCustoms(),
+    swCustomsValue1(),
+    swCustomsValue2(),
+    swSectionPreference(),
+    swPreferenceValue(),
+    swPreferenceSpecial(),
+    swEfficiencySlide1(),
+    swEfficiencySlide2(),
+    swRoiSlide(),
+    swAssumptionsSlide(),
+    swReferencesSlide(),
+    swCloseSlide(),
+  ].join('\n\n');
+
+  const deckHtml = `<!doctype html>
+<html lang="en" data-classification="internal">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SAP GTS Business Case — ${D.company}</title>
+<link rel="stylesheet" href="engine/deck.css">
+</head>
+<body>
+
+<!-- ===== SLIDES START ===== -->
+
+${slides}
+
+<!-- ===== SLIDES END ===== -->
+
+<script src="engine/icons.js"><\/script>
+<script src="engine/deck.js"><\/script>
+<script src="engine/widgets.js"><\/script>
+</body>
+</html>`;
+
+  const blob = new Blob([deckHtml], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'deck.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+
+  document.getElementById('swInstructions').style.display = 'block';
+}
+
+// ─── Live References via Claude API + Web Search ───
+function addLoadingStep(msg, done) {
+  const c = document.getElementById('loadingSteps');
+  if (!c) return;
+  const d = document.createElement('div');
+  d.style.cssText = 'color:rgba(255,255,255,.88);font-size:.8125rem;display:flex;align-items:flex-start;gap:.5rem';
+  d.innerHTML = `<span style="flex-shrink:0;margin-top:1px;color:${done ? '#4CAF50' : 'rgba(255,255,255,.35)'}">${done ? '✓' : '○'}</span><span>${msg}</span>`;
+  c.appendChild(d);
+}
+
+async function fetchDynamicReferences(apiKey, onStatus) {
+  const industry = D.industry || 'Manufacturing';
+  const regimes = D.regimes && D.regimes.length > 0 ? D.regimes.join(', ') : 'general export compliance';
+  const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+  const prompt = `You are a trade compliance expert. Today is ${today}.
+Customer industry: ${industry}. Export control regimes: ${regimes}.
+
+Search the web for the most recent enforcement cases and analyst benchmarks for ${industry} trade compliance. Look for:
+1. Recent large export control or customs enforcement penalties in ${industry} (last 3 years preferred)
+2. Analyst study benchmarks on trade compliance automation ROI
+3. Recent regulatory developments affecting ${industry}
+
+Return ONLY valid JSON (no markdown, no explanation):
+{
+  "industryEnforcement": {
+    "maxFineUSD": <largest single penalty in ${industry} in last 5 years as a number>,
+    "exampleCase": "<Company — $XM AUTHORITY (YEAR): one-line description>",
+    "recentCases": [
+      "<Case 1: Company, amount, authority, year, brief description>",
+      "<Case 2: Company, amount, authority, year, brief description>"
+    ]
+  },
+  "analystBenchmarks": [
+    "<Publisher — Study Title (Year): key finding about trade compliance automation ROI>",
+    "<Publisher — Study Title (Year): key finding>",
+    "<Publisher — Study Title (Year): key finding>"
+  ],
+  "regulatoryHighlights": [
+    "<Key recent regulatory development relevant to ${industry} trade compliance>",
+    "<Key recent regulatory development>"
+  ],
+  "dataVintage": "${today}"
+}`;
+
+  let messages = [{ role: 'user', content: prompt }];
+  let iterations = 0;
+  const MAX_ITER = 12;
+
+  while (iterations++ < MAX_ITER) {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5',
+        max_tokens: 2000,
+        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 5 }],
+        messages
+      })
+    });
+
+    if (!resp.ok) throw new Error('API ' + resp.status);
+    const data = await resp.json();
+
+    // Server-side tool: text block may be present alongside tool_use/server_tool_result
+    const textBlock = data.content && data.content.filter(b => b.type === 'text').pop();
+
+    if (data.stop_reason === 'end_turn' && textBlock) {
+      const txt = textBlock.text.trim().replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+      return JSON.parse(txt);
+    }
+
+    // Client-side tool_use loop (fallback if web_search requires client round-trip)
+    if (data.stop_reason === 'tool_use') {
+      if (onStatus) onStatus('Reading web search results…');
+      messages.push({ role: 'assistant', content: data.content });
+      const toolUseBlocks = data.content.filter(b => b.type === 'tool_use');
+      if (toolUseBlocks.length === 0) break;
+      const toolResults = toolUseBlocks.map(b => ({
+        type: 'tool_result',
+        tool_use_id: b.id,
+        content: b.result || 'Search results processed'
+      }));
+      messages.push({ role: 'user', content: toolResults });
+      continue;
+    }
+
+    // Catch-all: return text if present
+    if (textBlock) {
+      const txt = textBlock.text.trim().replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+      return JSON.parse(txt);
+    }
+    break;
+  }
+
+  throw new Error('No result after ' + iterations + ' iterations');
+}
+
+// ─── Generate ───
+async function generateDeck() {
+  collectAnswers();
+
+  const apiKeyEl = document.getElementById('q_api_key');
+  const apiKey = apiKeyEl ? apiKeyEl.value.trim() : '';
+  if (apiKey) localStorage.setItem('gts_roi_api_key', apiKey);
+
+  const overlay = document.getElementById('loadingOverlay');
+  const statusEl = document.getElementById('loadingStatus');
+  const titleEl = document.getElementById('loadingTitle');
+  const stepsEl = document.getElementById('loadingSteps');
+
+  if (apiKey) {
+    overlay.classList.add('active');
+    if (stepsEl) stepsEl.innerHTML = '';
+    if (titleEl) titleEl.textContent = 'Searching the web for live data…';
+    if (statusEl) statusEl.textContent = 'Claude is searching for recent ' + (D.industry || 'industry') + ' enforcement cases and benchmarks';
+    addLoadingStep('Connecting to Claude AI with web search', false);
+
+    try {
+      let searchStep = null;
+      const refs = await fetchDynamicReferences(apiKey, (msg) => {
+        if (statusEl) statusEl.textContent = msg;
+        if (!searchStep && stepsEl) {
+          stepsEl.innerHTML = '';
+          addLoadingStep('Searching: enforcement cases & benchmarks for ' + (D.industry || 'industry'), false);
+          searchStep = true;
+        }
+      });
+      if (stepsEl) {
+        stepsEl.innerHTML = '';
+        addLoadingStep('Searched: enforcement cases & benchmarks for ' + (D.industry || 'industry'), true);
+        if (refs.regulatoryHighlights && refs.regulatoryHighlights.length) {
+          addLoadingStep('Found: ' + refs.regulatoryHighlights.length + ' regulatory highlights', true);
+        }
+        addLoadingStep('References refreshed via live web search', true);
+      }
+      D.dynamicRefs = refs;
+      if (refs.industryEnforcement) {
+        if (refs.industryEnforcement.maxFineUSD) D.risk.max = refs.industryEnforcement.maxFineUSD;
+        if (refs.industryEnforcement.exampleCase) D.risk.ex = refs.industryEnforcement.exampleCase;
+      }
+      if (titleEl) titleEl.textContent = 'Building your presentation…';
+      if (statusEl) statusEl.textContent = 'Assembling ' + 20 + ' slides with live data';
+      await new Promise(r => setTimeout(r, 400));
+    } catch (err) {
+      console.warn('Dynamic references unavailable:', err);
+      D.dynamicRefs = null;
+      if (stepsEl) {
+        stepsEl.innerHTML = '';
+        addLoadingStep('Web search unavailable — using built-in references', false);
+      }
+      if (titleEl) titleEl.textContent = 'Building your presentation…';
+      if (statusEl) statusEl.textContent = 'API unavailable — using built-in references';
+      await new Promise(r => setTimeout(r, 900));
+    }
+  } else {
+    D.dynamicRefs = null;
+  }
+
   slideIndex = 0;
 
   const slides = [
@@ -1564,6 +2884,8 @@ function generateDeck() {
     assumptionsSlide(),
     referencesSlide(),
   ];
+
+  overlay.classList.remove('active');
 
   document.getElementById('slidesContainer').innerHTML = slides.join('');
   document.getElementById('deckTitle').textContent = `Business Case — SAP GTS | ${D.company}`;
