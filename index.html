@@ -1604,6 +1604,27 @@ async function downloadPPTX() {
   pptx.author = 'SAP GTS ROI Builder';
 
   const W = 10, H = 5.625, FH = 0.38, FY = H - FH;
+
+  // Patch addSlide so every addText defaults to 72 Brand unless overridden per-call
+  const _origAddSlide = pptx.addSlide.bind(pptx);
+  pptx.addSlide = function(...args) {
+    const slide = _origAddSlide(...args);
+    const _origAddText = slide.addText.bind(slide);
+    slide.addText = function(text, opts) {
+      opts = opts || {};
+      if (!opts.fontFace) opts.fontFace = '72 Brand';
+      // For array-of-runs, inject fontFace into runs that don't have their own
+      if (Array.isArray(text)) {
+        text = text.map(t => {
+          const o = t.options || {};
+          return { text: t.text, options: o.fontFace ? o : { fontFace:'72 Brand', ...o } };
+        });
+      }
+      return _origAddText(text, opts);
+    };
+    return slide;
+  };
+
   const C = {
     blue:'0070F2', navy:'002A86', dark:'00144A', mid:'1B90FF',
     lite:'89D1FF', gold:'F0AB00', green:'188918', red:'D20A0A',
@@ -1631,20 +1652,20 @@ async function downloadPPTX() {
       const bx = 0.5 + i * (bw + gap);
       s.addShape(pptx.ShapeType.rect, { x:bx, y, w:bw, h:0.9, fill:{color:C.light}, line:{color:C.border, pt:1} });
       s.addShape(pptx.ShapeType.rect, { x:bx, y, w:bw, h:0.055, fill:{color:b.color||C.blue}, line:{color:b.color||C.blue, pt:0} });
-      s.addText(b.val, { x:bx+0.06, y:y+0.06, w:bw-0.12, h:0.48, fontSize:b.val.length>9?14:18, bold:true, color:C.text, align:'center', valign:'middle', shrinkText:true });
-      s.addText(b.label, { x:bx+0.05, y:y+0.55, w:bw-0.1, h:0.3, fontSize:7.5, color:C.gray, align:'center', wrap:true });
+      s.addText(b.val, { x:bx+0.06, y:y+0.06, w:bw-0.12, h:0.48, fontSize:b.val.length>9?14:18, bold:true, color:C.text, align:'center', valign:'middle', shrinkText:true, fontFace:'72 Brand Medium' });
+      s.addText(b.label, { x:bx+0.05, y:y+0.55, w:bw-0.1, h:0.3, fontSize:7.5, color:C.gray, align:'center', wrap:true, fontFace:'72 Brand' });
     });
   }
 
   function bulletBlock(s, items, x, y, w, h) {
     const arr = [];
     items.forEach((item, idx) => {
-      if (idx > 0) arr.push({ text:'\n', options:{fontSize:9.5} });
-      arr.push({ text:'▸  ', options:{color:C.blue, fontSize:9.5, bold:true} });
-      arr.push({ text:item.text, options:{color:C.text, fontSize:9.5} });
-      if (item.sub) arr.push({ text:'\n    '+item.sub, options:{color:C.gray, fontSize:8} });
+      if (idx > 0) arr.push({ text:'\n', options:{fontSize:9.5, fontFace:'72 Brand'} });
+      arr.push({ text:'▸  ', options:{color:C.blue, fontSize:9.5, bold:true, fontFace:'72 Brand'} });
+      arr.push({ text:item.text, options:{color:C.text, fontSize:9.5, fontFace:'72 Brand'} });
+      if (item.sub) arr.push({ text:'\n    '+item.sub, options:{color:C.gray, fontSize:8, fontFace:'72 Brand'} });
     });
-    s.addText(arr, { x, y, w, h, valign:'top', wrap:true, lineSpacingMultiple:1.25 });
+    s.addText(arr, { x, y, w, h, valign:'top', wrap:true, lineSpacingMultiple:1.25, fontFace:'72 Brand' });
   }
 
   function sectionSlide(num, title, desc) {
@@ -1828,7 +1849,7 @@ async function downloadPPTX() {
       [{text:`Customs broker fees (${D.broker})`,options:{fontSize:9}},{text:fmt(D.brokerSpend),options:{fontSize:9}},{text:fmt(D.brokerSpend-D.brokerSaving),options:{fontSize:9}},{text:fmt(D.brokerSaving),options:{bold:true,color:C.green,fontSize:9}}],
       [{text:'Declaration manual preparation time',options:{fontSize:9}},{text:'~18–25 min / declaration',options:{fontSize:9}},{text:'~5–8 min / declaration',options:{fontSize:9}},{text:fmt(D.declTimeSaving),options:{bold:true,color:C.green,fontSize:9}}],
       [{text:'Duty errors & overpayments (est. 3–5%)',options:{fontSize:9}},{text:fmt(D.dutyMid*0.04),options:{fontSize:9}},{text:fmt(D.dutyMid*0.01),options:{fontSize:9}},{text:fmt(D.dutyMid*0.03),options:{bold:true,color:C.green,fontSize:9}}],
-    ], { x:0.5, y:2.1, w:9.0, rowH:0.4, border:{type:'solid',color:C.border,pt:1}, fill:{color:C.white}, fontFace:'Arial' });
+    ], { x:0.5, y:2.1, w:9.0, rowH:0.4, border:{type:'solid',color:C.border,pt:1}, fill:{color:C.white}, fontFace:'72 Brand' });
     s.addShape(pptx.ShapeType.rect, { x:0.5, y:3.88, w:9, h:0.5, fill:{color:'FEF9E7'}, line:{color:C.gold, pt:1} });
     s.addText('SAP GTS Customs Connection enables direct self-filing and broker integrations in 50+ countries, replacing manual broker submission for a significant portion of declarations.', { x:0.65, y:3.92, w:8.7, h:0.42, fontSize:8.5, color:'5A4500', wrap:true });
     footer(s, n);
@@ -1925,7 +1946,7 @@ async function downloadPPTX() {
       [{text:'Preference Determination',options:{bold:true,fontSize:8.5}},{text:'Ad-hoc, manual BOM review',options:{fontSize:8.5}},{text:'Automated origin calculation, auto CoO issuance',options:{fontSize:8.5}},{text:'Capture missed FTA savings',options:{bold:true,color:C.green,fontSize:8.5}}],
       [{text:'Bonded Warehouse / FTZ',options:{bold:true,fontSize:8.5}},{text:'Manual stock ledger, spreadsheet',options:{fontSize:8.5}},{text:'Real-time inventory, automatic duty tracking',options:{fontSize:8.5}},{text:'Audit-ready at all times',options:{bold:true,color:C.green,fontSize:8.5}}],
       [{text:'Customs Audit Response',options:{bold:true,fontSize:8.5}},{text:'2–4 weeks to compile records',options:{fontSize:8.5}},{text:'On-demand archive retrieval',options:{fontSize:8.5}},{text:'Days, not weeks',options:{bold:true,color:C.green,fontSize:8.5}}],
-    ], { x:0.5, y:1.06, w:9.0, rowH:0.44, border:{type:'solid',color:C.border,pt:1}, fill:{color:C.white}, fontFace:'Arial', colW:[1.85,2.2,2.7,2.25] });
+    ], { x:0.5, y:1.06, w:9.0, rowH:0.44, border:{type:'solid',color:C.border,pt:1}, fill:{color:C.white}, fontFace:'72 Brand', colW:[1.85,2.2,2.7,2.25] });
     footer(s, n);
   }
 
@@ -1951,7 +1972,7 @@ async function downloadPPTX() {
       if (D.implCost > 0) tbl.push([{text:'Implementation (amortised Y1)',options:{color:C.red,fontSize:9}},{text:`−${fmt(D.implCost/3)}`,options:{color:C.red,fontSize:9}}]);
       tbl.push([{text:'Net Annual Benefit (Year 1)',options:{bold:true,fontSize:9,fill:{color:C.light}}},{text:fmt(D.netBenefit),options:{bold:true,color:C.green,fontSize:9,fill:{color:C.light}}}]);
     }
-    s.addTable(tbl, { x:0.5, y:1.06, w:5.5, rowH:0.42, border:{type:'solid',color:C.border,pt:1}, fill:{color:C.white}, fontFace:'Arial' });
+    s.addTable(tbl, { x:0.5, y:1.06, w:5.5, rowH:0.42, border:{type:'solid',color:C.border,pt:1}, fill:{color:C.white}, fontFace:'72 Brand' });
 
     const hasLic = D.licCost > 0 || D.implCost > 0;
     const mcs = hasLic
