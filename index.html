@@ -2862,7 +2862,7 @@ function logUsage() {
     fetch('https://script.google.com/macros/s/AKfycbzxQKtqN1-ktzI3mz8UuVD3K0FnBSRwIXZGNMNrxmrScwkGjvysJSL79LwXhBTU4QwGPQ/exec', {
       method: 'POST',
       mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(payload)
     });
   } catch(e) { /* silent — never block deck generation */ }
