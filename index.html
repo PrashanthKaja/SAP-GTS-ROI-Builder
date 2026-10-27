@@ -1612,9 +1612,9 @@ async function downloadPPTX() {
 
   function footer(s, n) {
     s.addShape(pptx.ShapeType.rect, { x:0, y:FY, w:W, h:FH, fill:{color:C.shell}, line:{color:C.shell, pt:0} });
-    s.addShape(pptx.ShapeType.rect, { x:0.22, y:FY+0.06, w:0.4, h:0.26, fill:{color:C.white}, line:{color:C.white, pt:0}, rectRadius:0.02 });
-    s.addText('SAP', { x:0.22, y:FY+0.06, w:0.4, h:0.26, fontSize:8, bold:true, color:C.shell, align:'center', valign:'middle' });
-    s.addText(D.company, { x:0.72, y:FY+0.05, w:3.8, h:0.28, fontSize:8, bold:true, color:'BBCCDD' });
+    s.addShape(pptx.ShapeType.rect, { x:0.18, y:FY+0.05, w:0.5, h:0.28, fill:{color:'F5F5F5'}, line:{color:'F5F5F5', pt:0}, rectRadius:0.02 });
+    s.addImage({ data:SAP_DATA_URL, x:0.18, y:FY+0.05, w:0.5, h:0.28 });
+    s.addText(D.company, { x:0.78, y:FY+0.05, w:3.8, h:0.28, fontSize:8, bold:true, color:'BBCCDD' });
     s.addText('SAP GTS — Business Case', { x:3.8, y:FY+0.05, w:3.8, h:0.28, fontSize:8, color:'8899AA', align:'center' });
     s.addText(String(n), { x:9.35, y:FY+0.05, w:0.45, h:0.28, fontSize:9, bold:true, color:C.white, align:'right' });
   }
@@ -1665,8 +1665,7 @@ async function downloadPPTX() {
     const s = pptx.addSlide();
     s.background = { color:C.cover };
     s.addShape(pptx.ShapeType.rect, { x:4.8, y:0, w:5.2, h:H, fill:{color:C.blue, transparency:75}, line:{color:C.blue, transparency:75, pt:0} });
-    s.addShape(pptx.ShapeType.rect, { x:8.65, y:0.26, w:1.1, h:0.42, fill:{color:C.white}, line:{color:C.white, pt:0}, rectRadius:0.02 });
-    s.addText('SAP', { x:8.65, y:0.26, w:1.1, h:0.42, fontSize:13, bold:true, color:C.shell, align:'center', valign:'middle', charSpacing:1.5 });
+    s.addImage({ data:SAP_DATA_URL, x:8.65, y:0.26, w:1.1, h:0.42 });
     s.addText('BUSINESS CASE PRESENTATION', { x:0.65, y:1.32, w:7, h:0.32, fontSize:9, color:'7788AA', charSpacing:2.5 });
     s.addText([
       {text:'SAP Global Trade Services\n', options:{fontSize:26, bold:true, color:C.white}},
