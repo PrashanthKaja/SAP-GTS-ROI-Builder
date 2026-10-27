@@ -1605,13 +1605,13 @@ async function downloadPPTX() {
 
   const W = 10, H = 5.625, FH = 0.38, FY = H - FH;
   const C = {
-    blue:'0070F2', shell:'354A5E', cover:'012A4A', gold:'F0AB00',
-    green:'188918', red:'AA0808', gray:'556B82', light:'EEF0F2',
-    text:'1D2D3E', border:'D1D7DD', white:'FFFFFF'
+    blue:'0070F2', navy:'002A86', dark:'00144A', mid:'1B90FF',
+    lite:'89D1FF', gold:'F0AB00', green:'188918', red:'D20A0A',
+    gray:'556B82', light:'EEF0F2', text:'1D2D3E', border:'D1D7DD', white:'FFFFFF'
   };
 
   function footer(s, n) {
-    s.addShape(pptx.ShapeType.rect, { x:0, y:FY, w:W, h:FH, fill:{color:C.shell}, line:{color:C.shell, pt:0} });
+    s.addShape(pptx.ShapeType.rect, { x:0, y:FY, w:W, h:FH, fill:{color:C.navy}, line:{color:C.navy, pt:0} });
     s.addShape(pptx.ShapeType.rect, { x:0.18, y:FY+0.05, w:0.5, h:0.28, fill:{color:'F5F5F5'}, line:{color:'F5F5F5', pt:0}, rectRadius:0.02 });
     s.addImage({ data:SAP_DATA_URL, x:0.18, y:FY+0.05, w:0.5, h:0.28 });
     s.addText(D.company, { x:0.78, y:FY+0.05, w:3.8, h:0.28, fontSize:8, bold:true, color:'BBCCDD' });
@@ -1621,7 +1621,7 @@ async function downloadPPTX() {
 
   function titleBar(s, text, color) {
     s.addShape(pptx.ShapeType.rect, { x:0.45, y:0.36, w:0.07, h:0.52, fill:{color:color||C.blue}, line:{color:color||C.blue, pt:0} });
-    s.addText(text, { x:0.6, y:0.33, w:9.0, h:0.58, fontSize:16, bold:true, color:C.text, valign:'middle' });
+    s.addText(text, { x:0.6, y:0.33, w:9.0, h:0.58, fontSize:16, bold:true, color:C.text, valign:'middle', fontFace:'72 Brand Medium' });
   }
 
   function kpiRow(s, boxes, y) {
@@ -1649,12 +1649,19 @@ async function downloadPPTX() {
 
   function sectionSlide(num, title, desc) {
     const s = pptx.addSlide();
-    s.background = { color:C.shell };
-    s.addShape(pptx.ShapeType.rect, { x:0, y:0, w:W, h:H, fill:{color:C.blue, transparency:78}, line:{color:C.blue, transparency:78, pt:0} });
-    s.addText(num, { x:0.5, y:0.7, w:3, h:1.9, fontSize:96, bold:true, color:'FFFFFF', transparency:82 });
-    s.addText(title, { x:0.5, y:2.25, w:8.8, h:0.95, fontSize:28, bold:true, color:C.white, wrap:true });
-    s.addShape(pptx.ShapeType.rect, { x:0.5, y:3.28, w:1.5, h:0.05, fill:{color:'FFFFFF', transparency:55}, line:{color:C.white, transparency:55, pt:0} });
-    s.addText(desc, { x:0.5, y:3.42, w:8.2, h:0.72, fontSize:12, color:'CCDDE8', wrap:true });
+    s.background = { color:C.white };
+    // Bottom half — dark navy (matches official SAP template divider layout)
+    s.addShape(pptx.ShapeType.rect, { x:0, y:2.81, w:W, h:H-2.81, fill:{color:C.navy}, line:{color:C.navy, pt:0} });
+    // Section number — small, in primary blue, top-left
+    s.addText(num, { x:0.52, y:0.45, w:1.5, h:0.6, fontSize:22, bold:true, color:C.blue, fontFace:'72 Brand Medium' });
+    // Title — in light top area
+    s.addText(title, { x:0.52, y:1.05, w:9.1, h:1.0, fontSize:28, bold:true, color:C.navy, fontFace:'72 Brand Medium', wrap:true });
+    // Gold accent bar — just above the dark panel
+    s.addShape(pptx.ShapeType.rect, { x:0.52, y:2.66, w:1.3, h:0.06, fill:{color:C.gold}, line:{color:C.gold, pt:0} });
+    // Description — on dark panel
+    s.addText(desc, { x:0.52, y:3.05, w:9.0, h:H-3.35, fontSize:12, color:'CCDDE8', wrap:true });
+    // Large faint section number in navy panel
+    s.addText(num, { x:7.5, y:2.6, w:2.3, h:2.5, fontSize:88, bold:true, color:C.white, transparency:88, fontFace:'72 Brand Medium' });
     return s;
   }
 
@@ -1663,19 +1670,28 @@ async function downloadPPTX() {
   // ── Slide 1: Cover ──
   n++; {
     const s = pptx.addSlide();
-    s.background = { color:C.cover };
-    s.addShape(pptx.ShapeType.rect, { x:4.8, y:0, w:5.2, h:H, fill:{color:C.blue, transparency:75}, line:{color:C.blue, transparency:75, pt:0} });
-    s.addImage({ data:SAP_DATA_URL, x:8.65, y:0.26, w:1.1, h:0.42 });
-    s.addText('BUSINESS CASE PRESENTATION', { x:0.65, y:1.32, w:7, h:0.32, fontSize:9, color:'7788AA', charSpacing:2.5 });
+    s.background = { color:C.white };
+    // Right panel — dark navy (matches official SAP template cover layout)
+    s.addShape(pptx.ShapeType.rect, { x:4.9, y:0, w:5.1, h:H, fill:{color:C.navy}, line:{color:C.navy, pt:0} });
+    // SAP logo — top-left of right panel
+    s.addImage({ data:SAP_DATA_URL, x:5.15, y:0.28, w:1.1, h:0.42 });
+    // Eyebrow label — left panel
+    s.addText('BUSINESS CASE PRESENTATION', { x:0.55, y:0.88, w:4.1, h:0.28, fontSize:8, color:'8899BB', charSpacing:2.2, fontFace:'72 Brand' });
+    // Main title — left panel
     s.addText([
-      {text:'SAP Global Trade Services\n', options:{fontSize:26, bold:true, color:C.white}},
-      {text:'Edition for HANA', options:{fontSize:22, bold:true, color:C.white}}
-    ], { x:0.65, y:1.68, w:7.6, h:1.35, valign:'top', lineSpacingMultiple:1.15 });
-    s.addShape(pptx.ShapeType.rect, { x:0.65, y:3.15, w:1.2, h:0.05, fill:{color:C.gold}, line:{color:C.gold, pt:0} });
-    s.addText('Value Case & Return on Investment Analysis', { x:0.65, y:3.28, w:7.2, h:0.38, fontSize:12, color:'BBCCDD' });
+      {text:'SAP Global Trade Services\n', options:{fontSize:23, bold:true, color:C.navy, fontFace:'72 Brand Medium'}},
+      {text:'Edition for HANA', options:{fontSize:19, bold:true, color:C.navy, fontFace:'72 Brand Medium'}}
+    ], { x:0.55, y:1.22, w:4.1, h:1.3, valign:'top', lineSpacingMultiple:1.18 });
+    // Gold accent bar
+    s.addShape(pptx.ShapeType.rect, { x:0.55, y:2.63, w:1.2, h:0.05, fill:{color:C.gold}, line:{color:C.gold, pt:0} });
+    // Subtitle
+    s.addText('Value Case & Return on Investment Analysis', { x:0.55, y:2.75, w:4.1, h:0.38, fontSize:11, color:C.gray, fontFace:'72 Brand' });
+    // Info badge
     const dt = new Date().toLocaleDateString('en-GB', {year:'numeric',month:'long'});
-    s.addShape(pptx.ShapeType.roundRect, { x:0.65, y:3.83, w:6.4, h:0.38, fill:{color:'FFFFFF', transparency:88}, line:{color:'FFFFFF', transparency:65, pt:1}, rectRadius:0.15 });
-    s.addText(`Prepared for: ${D.company}   |   ${D.industry}   |   ${dt}`, { x:0.78, y:3.86, w:6.1, h:0.32, fontSize:9.5, color:'CCDDE8' });
+    s.addShape(pptx.ShapeType.roundRect, { x:0.55, y:3.26, w:4.1, h:0.4, fill:{color:C.light}, line:{color:C.border, pt:1}, rectRadius:0.1 });
+    s.addText(`Prepared for: ${D.company}   |   ${D.industry}   |   ${dt}`, { x:0.68, y:3.29, w:3.86, h:0.34, fontSize:8.5, color:C.text, fontFace:'72 Brand' });
+    // Subtle product name watermark in right panel
+    s.addText('GTS', { x:5.5, y:2.2, w:4.1, h:2.8, fontSize:96, bold:true, color:C.white, transparency:92, fontFace:'72 Brand Medium', align:'center' });
     footer(s, n);
   }
 
@@ -1808,7 +1824,7 @@ async function downloadPPTX() {
     titleBar(s, 'Customs: Volume & Cost Baseline', C.green);
     kpiRow(s, [{val:D.exports.toLocaleString(),label:'Export declarations / year',color:C.blue},{val:D.imports.toLocaleString(),label:'Import declarations / year',color:C.blue},{val:D.transit.toLocaleString(),label:'Transit declarations / year',color:C.blue},{val:fmt(D.brokerSpend),label:'Est. annual broker fees (current)',color:C.red}], 1.06);
     s.addTable([
-      [{text:'Cost Driver',options:{bold:true,color:C.white,fill:{color:C.shell},fontSize:9}},{text:'Current State',options:{bold:true,color:C.white,fill:{color:C.shell},fontSize:9}},{text:'With GTS',options:{bold:true,color:C.white,fill:{color:C.shell},fontSize:9}},{text:'Annual Saving',options:{bold:true,color:C.white,fill:{color:C.shell},fontSize:9}}],
+      [{text:'Cost Driver',options:{bold:true,color:C.white,fill:{color:C.navy},fontSize:9}},{text:'Current State',options:{bold:true,color:C.white,fill:{color:C.navy},fontSize:9}},{text:'With GTS',options:{bold:true,color:C.white,fill:{color:C.navy},fontSize:9}},{text:'Annual Saving',options:{bold:true,color:C.white,fill:{color:C.navy},fontSize:9}}],
       [{text:`Customs broker fees (${D.broker})`,options:{fontSize:9}},{text:fmt(D.brokerSpend),options:{fontSize:9}},{text:fmt(D.brokerSpend-D.brokerSaving),options:{fontSize:9}},{text:fmt(D.brokerSaving),options:{bold:true,color:C.green,fontSize:9}}],
       [{text:'Declaration manual preparation time',options:{fontSize:9}},{text:'~18–25 min / declaration',options:{fontSize:9}},{text:'~5–8 min / declaration',options:{fontSize:9}},{text:fmt(D.declTimeSaving),options:{bold:true,color:C.green,fontSize:9}}],
       [{text:'Duty errors & overpayments (est. 3–5%)',options:{fontSize:9}},{text:fmt(D.dutyMid*0.04),options:{fontSize:9}},{text:fmt(D.dutyMid*0.01),options:{fontSize:9}},{text:fmt(D.dutyMid*0.03),options:{bold:true,color:C.green,fontSize:9}}],
@@ -1901,7 +1917,7 @@ async function downloadPPTX() {
     const s = pptx.addSlide();
     titleBar(s, 'Before vs. After — GTS Transformation');
     s.addTable([
-      [{text:'Process',options:{bold:true,color:C.white,fill:{color:C.shell},fontSize:8.5}},{text:'Before GTS',options:{bold:true,color:C.white,fill:{color:C.shell},fontSize:8.5}},{text:'After GTS',options:{bold:true,color:C.white,fill:{color:C.shell},fontSize:8.5}},{text:'Impact',options:{bold:true,color:C.white,fill:{color:C.shell},fontSize:8.5}}],
+      [{text:'Process',options:{bold:true,color:C.white,fill:{color:C.navy},fontSize:8.5}},{text:'Before GTS',options:{bold:true,color:C.white,fill:{color:C.navy},fontSize:8.5}},{text:'After GTS',options:{bold:true,color:C.white,fill:{color:C.navy},fontSize:8.5}},{text:'Impact',options:{bold:true,color:C.white,fill:{color:C.navy},fontSize:8.5}}],
       [{text:'Restricted Party Screening',options:{bold:true,fontSize:8.5}},{text:'Periodic batch / manual check',options:{fontSize:8.5}},{text:'Real-time, every transaction, 250+ lists',options:{fontSize:8.5}},{text:'Eliminates compliance gap',options:{bold:true,color:C.green,fontSize:8.5}}],
       [{text:'Export Licence Determination',options:{bold:true,fontSize:8.5}},{text:'Manual ECCN lookup, spreadsheet',options:{fontSize:8.5}},{text:'Automatic at order entry',options:{fontSize:8.5}},{text:'70% time reduction',options:{bold:true,color:C.green,fontSize:8.5}}],
       [{text:'Customs Declaration Filing',options:{bold:true,fontSize:8.5}},{text:'Manual data entry to broker portal',options:{fontSize:8.5}},{text:'Auto-generated from SAP, filed via Customs Connection',options:{fontSize:8.5}},{text:'60–75% cost reduction',options:{bold:true,color:C.green,fontSize:8.5}}],
@@ -1927,7 +1943,7 @@ async function downloadPPTX() {
     ].filter(r => r[1] !== fmt(0));
 
     const tbl = [
-      [{text:'Value Driver',options:{bold:true,color:C.white,fill:{color:C.shell},fontSize:9}},{text:'Annual Benefit',options:{bold:true,color:C.white,fill:{color:C.shell},fontSize:9}}],
+      [{text:'Value Driver',options:{bold:true,color:C.white,fill:{color:C.navy},fontSize:9}},{text:'Annual Benefit',options:{bold:true,color:C.white,fill:{color:C.navy},fontSize:9}}],
       ...roiData.map(r => [{text:r[0],options:{fontSize:9}},{text:r[1],options:{bold:true,color:C.green,fontSize:9}}]),
     ];
     if (D.licCost > 0) {
