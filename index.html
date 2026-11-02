@@ -918,17 +918,17 @@ function collectAnswers() {
 
   // Compliance risk
   const riskMap = {
-    'Aerospace & Defense': {max:1.1e9, ex:'Raytheon / RTX — $950M ITAR consent agreement (2022)'},
-    'Electronics & Technology': {max:300e6, ex:'Intel — $2.3B; Seagate Technology — $300M EAR (2023)'},
-    'Chemicals': {max:100e6, ex:'Honeywell — $13M EAR/OFAC; Zeon Chemicals — $9M (2019)'},
-    'Semiconductors': {max:300e6, ex:'Seagate Technology — $300M BIS EAR penalty (2023)'},
-    'Telecom & Network Equipment': {max:200e6, ex:'ZTE Corp — $1.19B OFAC/BIS (2018)'},
-    'Automotive': {max:50e6, ex:'General Motors — engine export violation $9.5M (2020)'},
-    'Energy & Oil/Gas': {max:200e6, ex:'Baker Hughes / GE Oil — $63M OFAC (2019)'},
-    'Life Sciences & Pharma': {max:50e6, ex:'Biomet — $22M FCPA/export (2017)'},
-    'Industrial Machinery': {max:30e6, ex:'Moog — $10M ITAR consent (2019)'},
-    'Manufacturing (General)': {max:25e6, ex:'General industry average penalty range $1M–$25M'},
-    'Retail & Consumer Goods': {max:15e6, ex:'OFAC/CBP violations typically $1M–$15M'},
+    'Aerospace & Defense':        {max:79e6,     ex:'BAE Systems — $79M ITAR consent agreement (DDTC, 2011) for unauthorized export of defense articles to 42 countries'},
+    'Electronics & Technology':   {max:300e6,    ex:'Seagate Technology — $300M BIS EAR penalty (2023) for exporting hard drives to Huawei after Entity List restrictions'},
+    'Chemicals':                   {max:13e6,     ex:'Honeywell — $13M EAR/OFAC settlement for unauthorized exports of dual-use chemical technology'},
+    'Semiconductors':              {max:300e6,    ex:'Seagate Technology — $300M BIS EAR penalty (2023); largest semiconductor export control enforcement action to date'},
+    'Telecom & Network Equipment': {max:1.19e9,   ex:'ZTE Corp — $1.19B combined OFAC/BIS penalty (2018) for illegal exports to Iran and North Korea'},
+    'Automotive':                  {max:10e6,     ex:'Industry pattern: automotive parts/vehicles exported to sanctioned countries (Iran, Russia); CBP/OFAC penalties typically $1M–$10M per incident'},
+    'Energy & Oil/Gas':            {max:232.7e6,  ex:'Schlumberger — $232.7M OFAC settlement (2015) for providing oilfield services to Iran, Sudan, and Cuba via non-U.S. subsidiaries'},
+    'Life Sciences & Pharma':      {max:22e6,     ex:'Biomet — $22M settlement (2017) for export control and FCPA violations involving controlled medical devices'},
+    'Industrial Machinery':        {max:10e6,     ex:'Moog Inc. — $10M ITAR consent agreement (DDTC, 2019) for unauthorized export of controlled defense articles and technical data'},
+    'Manufacturing (General)':     {max:25e6,     ex:'BIS/OFAC enforcement average $1M–$25M for EAR violations; penalties multiply per transaction for repeat or wilful violations'},
+    'Retail & Consumer Goods':     {max:15e6,     ex:'OFAC/CBP consumer goods violations: $500K–$15M for sales to sanctioned individuals or countries via e-commerce or distributor channels'},
   };
   D.risk = riskMap[D.industry] || {max:25e6, ex:'Typical enforcement penalty $1M–$25M'};
 
