@@ -2808,7 +2808,9 @@ Using your knowledge of real, verified enforcement actions and publicly availabl
         throw new Error('Claude API ' + resp.status + ': ' + (errBody.error?.message || ''));
       }
       const data = await resp.json();
-      const txt = data.content[0].text.trim()
+      const block = data.content && data.content.find(b => b.type === 'text');
+      if (!block || !block.text) throw new Error('Unexpected response: ' + JSON.stringify(data).slice(0, 200));
+      const txt = block.text.trim()
         .replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
       return JSON.parse(txt);
     } catch(e) {
