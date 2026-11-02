@@ -1808,11 +1808,18 @@ async function downloadPPTX() {
     kpiRow(s, [{val:`Up to ${fmt(D.risk.max)}`,label:`Max single enforcement penalty — ${D.industry}`,color:C.red},{val:String(D.countries),label:'Jurisdictions requiring SPL screening',color:C.gold},{val:D.exports.toLocaleString(),label:'Export transactions per year at risk',color:C.red}], 1.06);
     s.addShape(pptx.ShapeType.rect, { x:0.5, y:2.1, w:9, h:0.52, fill:{color:'FFF5F5'}, line:{color:C.red, pt:1.5} });
     s.addText([{text:'Industry Precedent: ',options:{bold:true,color:C.red,fontSize:10}},{text:D.risk.ex,options:{color:C.text,fontSize:10}}], { x:0.65, y:2.14, w:8.7, h:0.44, wrap:true });
+    const regimeStr = D.regimes && D.regimes.length > 0 ? D.regimes.join(', ') : 'export control regulations';
+    if (D.controlled === 'Yes') {
+      s.addShape(pptx.ShapeType.rect, { x:0.5, y:2.68, w:9, h:0.52, fill:{color:'FFF5F5'}, line:{color:C.red, pt:1} });
+      s.addText([{text:'Export Violation Risk: ',options:{bold:true,color:C.red,fontSize:9}},{text:`Under EAR, violations carry up to $1M per transaction or twice the transaction value. ITAR violations: up to $1.3M per violation. With ${D.exports.toLocaleString()} annual export transactions, a single undetected controlled shipment to a restricted party creates material legal exposure.`,options:{color:C.text,fontSize:9}}], { x:0.65, y:2.72, w:8.7, h:0.44, wrap:true });
+    }
+    const bulletY = D.controlled === 'Yes' ? 3.28 : 2.74;
+    const bulletH = D.controlled === 'Yes' ? 1.6 : 2.0;
     bulletBlock(s, [
       {text:`Restricted party & SDN screening gaps: Manual or periodic screening leaves exposure windows. GTS performs real-time screening at order entry, delivery creation, and billing — across OFAC SDN, BIS Entity List, EU Consolidated List, and 200+ more.`, sub:'SAP GTS SPL screening covers 250+ government and commercial watchlists'},
       {text:`False positive burden: Without intelligent fuzzy matching, compliance teams spend 60–80% of their time clearing false positives. GTS scoring algorithms reduce false positives by up to 40%.`},
       {text:`Embargo & country-of-destination checks: With ${D.countries} active countries, manual embargo tracking is impractical. GTS automates country-level checks at transaction level.`},
-    ], 0.5, 2.74, 9.0, 2.0);
+    ], 0.5, bulletY, 9.0, bulletH);
     footer(s, n);
   }
 
@@ -1849,9 +1856,10 @@ async function downloadPPTX() {
       [{text:`Customs broker fees (${D.broker})`,options:{fontSize:9}},{text:fmt(D.brokerSpend),options:{fontSize:9}},{text:fmt(D.brokerSpend-D.brokerSaving),options:{fontSize:9}},{text:fmt(D.brokerSaving),options:{bold:true,color:C.green,fontSize:9}}],
       [{text:'Declaration manual preparation time',options:{fontSize:9}},{text:'~18–25 min / declaration',options:{fontSize:9}},{text:'~5–8 min / declaration',options:{fontSize:9}},{text:fmt(D.declTimeSaving),options:{bold:true,color:C.green,fontSize:9}}],
       [{text:'Duty errors & overpayments (est. 3–5%)',options:{fontSize:9}},{text:fmt(D.dutyMid*0.04),options:{fontSize:9}},{text:fmt(D.dutyMid*0.01),options:{fontSize:9}},{text:fmt(D.dutyMid*0.03),options:{bold:true,color:C.green,fontSize:9}}],
-    ], { x:0.5, y:2.1, w:9.0, rowH:0.4, border:{type:'solid',color:C.border,pt:1}, fill:{color:C.white}, fontFace:'72 Brand' });
-    s.addShape(pptx.ShapeType.rect, { x:0.5, y:3.88, w:9, h:0.5, fill:{color:'FEF9E7'}, line:{color:C.gold, pt:1} });
-    s.addText('SAP GTS Customs Connection enables direct self-filing and broker integrations in 50+ countries, replacing manual broker submission for a significant portion of declarations.', { x:0.65, y:3.92, w:8.7, h:0.42, fontSize:8.5, color:'5A4500', wrap:true });
+      [{text:'Demurrage & delay costs (customs holds)',options:{fontSize:9}},{text:'Variable / high',options:{fontSize:9}},{text:'Significantly reduced',options:{fontSize:9}},{text:'Qualitative',options:{bold:true,color:C.green,fontSize:9}}],
+    ], { x:0.5, y:2.1, w:9.0, rowH:0.38, border:{type:'solid',color:C.border,pt:1}, fill:{color:C.white}, fontFace:'72 Brand' });
+    s.addShape(pptx.ShapeType.rect, { x:0.5, y:4.16, w:9, h:0.5, fill:{color:'FEF9E7'}, line:{color:C.gold, pt:1} });
+    s.addText('SAP GTS Customs Connection enables direct self-filing and broker integrations in 50+ countries, replacing manual broker submission for a significant portion of declarations.', { x:0.65, y:4.2, w:8.7, h:0.42, fontSize:8.5, color:'5A4500', wrap:true });
     footer(s, n);
   }
 
