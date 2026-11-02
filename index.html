@@ -1656,15 +1656,16 @@ async function downloadPPTX() {
     });
   }
 
-  function bulletBlock(s, items, x, y, w, h) {
+  function bulletBlock(s, items, x, y, w, h, fontSize) {
+    fontSize = fontSize || 9.5;
     const arr = [];
     items.forEach((item, idx) => {
-      if (idx > 0) arr.push({ text:'\n', options:{fontSize:9.5, fontFace:'72 Brand'} });
-      arr.push({ text:'▸  ', options:{color:C.blue, fontSize:9.5, bold:true, fontFace:'72 Brand'} });
-      arr.push({ text:item.text, options:{color:C.text, fontSize:9.5, fontFace:'72 Brand'} });
-      if (item.sub) arr.push({ text:'\n    '+item.sub, options:{color:C.gray, fontSize:8, fontFace:'72 Brand'} });
+      if (idx > 0) arr.push({ text:'\n', options:{fontSize, fontFace:'72 Brand'} });
+      arr.push({ text:'▸  ', options:{color:C.blue, fontSize, bold:true, fontFace:'72 Brand'} });
+      arr.push({ text:item.text, options:{color:C.text, fontSize, fontFace:'72 Brand'} });
+      if (item.sub) arr.push({ text:'\n    '+item.sub, options:{color:C.gray, fontSize:fontSize-1.5, fontFace:'72 Brand'} });
     });
-    s.addText(arr, { x, y, w, h, valign:'top', wrap:true, lineSpacingMultiple:1.25, fontFace:'72 Brand' });
+    s.addText(arr, { x, y, w, h, valign:'top', wrap:true, lineSpacingMultiple:1.15, fontFace:'72 Brand' });
   }
 
   function sectionSlide(num, title, desc) {
@@ -1995,20 +1996,28 @@ async function downloadPPTX() {
     const s = pptx.addSlide();
     titleBar(s, 'Assumptions & Methodology', C.gray);
     const ftaPct = Math.min(8 + D.ftas * 3, 30);
-    bulletBlock(s, [
-      {text:`Declaration volumes provided by ${D.company}: ${D.exports.toLocaleString()} exports, ${D.imports.toLocaleString()} imports, ${D.transit.toLocaleString()} transit per year.`},
+    const leftItems = [
+      {text:`Customs declaration volumes provided directly by ${D.company}: ${D.exports.toLocaleString()} exports, ${D.imports.toLocaleString()} imports, ${D.transit.toLocaleString()} transit per year.`},
       {text:`Broker cost per declaration assumed at ${fmt(D.brokerCost)}; SAP GTS Customs Connection achieves 35% broker fee reduction in Year 1, rising to 50–60% in Year 2–3.`},
       {text:`Classification labor: ${D.classHours.toLocaleString()} hrs/year at ${fmt(85)}/hr blended rate; GTS automates ~60% of classification workload.`},
       {text:`Compliance time saving: ${D.users} FTE × 250 overhead hrs/yr × ${fmt(85)}/hr × 30% efficiency gain.`},
-    ], 0.5, 1.06, 4.6, 3.65);
-    bulletBlock(s, [
       {text:`Duty spend mid-point used: ${D.dutySpend} band → ${fmt(D.dutyMid)} baseline.`},
-      {text:`FTA preference saving: estimated at ${ftaPct}% of duty spend; industry benchmark range 8–30%, increasing with each FTA actively managed in GTS.`},
-      {text:'All figures displayed in ' + D.currency + ' (' + CUR.symbol + ') as selected in the questionnaire.'},
-      {text:'Savings are annual steady-state (Year 2+); Year 1 savings are typically 40–60% of stated figures due to phased implementation.'},
-    ], 5.2, 1.06, 4.35, 3.35);
-    s.addShape(pptx.ShapeType.rect, { x:5.2, y:4.48, w:4.35, h:0.5, fill:{color:'FEF9E7'}, line:{color:C.gold, pt:1} });
-    s.addText('This presentation is a directional value case tool. A detailed business case should be completed with SAP and an implementation partner following a trade discovery workshop.', { x:5.35, y:4.52, w:4.05, h:0.42, fontSize:8, color:'5A4500', wrap:true });
+      {text:`FTA preference saving: estimated at ${ftaPct}% of duty spend (increases with each FTA managed in GTS); industry benchmark range 8–30%.`},
+      ...(D.specialSaving > 0 ? [{text:`Special procedures (${D.bonded==='Yes'?'bonded warehouse':''}${D.bonded==='Yes'&&D.ftz==='Yes'?' + ':''}${D.ftz==='Yes'?'FTZ':''}): 12% duty saving assumption on applicable duty spend.`}] : []),
+      {text:`Industry fine precedents sourced from public enforcement records (BIS, OFAC, DOJ). Max fine shown is a precedent, not a prediction.`},
+    ];
+    const rightItems = [
+      {text:`SAP GTS HANA edition licence costs vary by scope, users, and commercial negotiation — ROI model uses operational savings only; licence cost to be validated with SAP/partner quote.`},
+      {text:`Implementation cost excluded from this ROI model — typical GTS implementations range from USD 300K (single country, small scope) to USD 2M+ (multi-country, full scope); payback periods of 12–30 months are common.`},
+      {text:`All figures displayed in ${D.currency} (${CUR.symbol}) as selected in the questionnaire.`},
+      {text:`Savings are annual steady-state (Year 2+); Year 1 savings are typically 40–60% of stated figures due to implementation timeline.`},
+      {text:`Figures are estimates based on industry benchmarks and data provided — detailed discovery will refine the business case.`},
+      {text:`Sources: SAP GTS Help Documentation, PwC/KPMG Global Trade Studies, Aberdeen Group, E2open Global Trade Benchmark, BIS/OFAC public enforcement records.`},
+    ];
+    bulletBlock(s, leftItems,  0.5, 1.06, 4.55, 3.65, 7.5);
+    bulletBlock(s, rightItems, 5.2, 1.06, 4.35, 3.1,  7.5);
+    s.addShape(pptx.ShapeType.rect, { x:5.2, y:4.22, w:4.35, h:0.62, fill:{color:'FEF9E7'}, line:{color:C.gold, pt:1} });
+    s.addText('This presentation is a directional value case tool. A detailed business case should be completed with SAP and an implementation partner following a trade discovery workshop.', { x:5.35, y:4.25, w:4.05, h:0.55, fontSize:7.5, color:'5A4500', wrap:true });
     footer(s, n);
   }
 
@@ -2027,8 +2036,8 @@ async function downloadPPTX() {
 
     function refBox(bx, by, bw, bh, title, items) {
       s.addShape(pptx.ShapeType.rect, { x:bx, y:by, w:bw, h:bh, fill:{color:C.light}, line:{color:C.border, pt:1} });
-      s.addText(title.toUpperCase(), { x:bx+0.1, y:by+0.07, w:bw-0.2, h:0.26, fontSize:7.5, bold:true, color:C.gray, charSpacing:0.5 });
-      bulletBlock(s, items.map(i => ({text:i})), bx+0.1, by+0.35, bw-0.2, bh-0.45);
+      s.addText(title.toUpperCase(), { x:bx+0.1, y:by+0.07, w:bw-0.2, h:0.26, fontSize:7, bold:true, color:C.gray, charSpacing:0.5 });
+      bulletBlock(s, items.map(i => ({text:i})), bx+0.1, by+0.35, bw-0.2, bh-0.45, 7.5);
     }
     refBox(0.5, 1.06, 4.45, 2.18, 'SAP Product Documentation', sapDocs);
     refBox(5.05, 1.06, 4.45, 2.18, 'Industry Research & Benchmarks' + (dyn?' — AI refreshed':''), benchmarks);
