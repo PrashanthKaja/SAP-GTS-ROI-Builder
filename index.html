@@ -1888,8 +1888,12 @@ async function downloadPPTX() {
   n++; {
     const s = pptx.addSlide();
     titleBar(s, 'Trade Preference: Unlocking Duty Savings', C.gold);
-    const kpis = [{val:String(D.ftas),label:'Active FTAs to optimise',color:C.gold},{val:D.dutySpend,label:'Annual duty spend baseline',color:C.blue},{val:fmt(D.ftaSaving),label:'Est. FTA preference savings',color:C.green}];
-    if (D.specialSaving > 0) kpis.push({val:fmt(D.specialSaving),label:'Special procedures duty savings',color:C.green});
+    const kpis = [
+      {val:String(D.ftas), label:'Active FTAs to optimise', color:C.gold},
+      {val:D.dutySpend, label:'Annual duty spend baseline', color:C.blue},
+      {val:fmt(D.ftaSaving), label:'Est. FTA preference savings', color:C.green},
+      {val:D.specialSaving > 0 ? fmt(D.specialSaving) : 'N/A', label:'Special procedures duty savings', color:C.green}
+    ];
     kpiRow(s, kpis, 1.06);
     bulletBlock(s, [
       {text:'Missed preference is cash left on the table: Studies show 30–60% of qualifying imports never claim available FTA preference — primarily due to lack of automated origin determination.', sub:'Source: Amber Road / E2open Global Trade Study; WTO FTA Utilization Research 2021'},
