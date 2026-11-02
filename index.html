@@ -2799,7 +2799,7 @@ After searching, return ONLY valid JSON (no markdown, no explanation):
       headers: {
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'web-search-2025-03-05',
+        ...(noSearch ? {} : { 'anthropic-beta': 'web-search-2025-03-05' }),
         'anthropic-dangerous-direct-browser-access': 'true',
         'content-type': 'application/json'
       },
