@@ -1514,7 +1514,7 @@ function referencesSlide() {
        <li style="font-size:12px">WTO RTA Database: <a href="https://rtais.wto.org" target="_blank">rtais.wto.org</a></li>`;
 
   const vintageNote = dyn
-    ? `<div class="note-box" style="margin-top:8px;background:#e8f5ee;border-left-color:var(--sap-green);color:#1a4a1a">✓ References refreshed by Gemini AI on ${dyn.dataVintage}. Enforcement data and benchmarks reflect industry knowledge up to model training cutoff.</div>`
+    ? `<div class="note-box" style="margin-top:8px;background:#e8f5ee;border-left-color:var(--sap-green);color:#1a4a1a">✓ References refreshed by Claude AI on ${dyn.dataVintage}. Enforcement data and benchmarks reflect industry knowledge up to model training cutoff.</div>`
     : `<div class="note-box" style="margin-top:8px">All enforcement case data sourced from public regulatory records. ROI benchmarks are industry estimates. AI-refreshed references are generated automatically at presentation time.</div>`;
 
   const titleTag = dyn ? ` <span class="tag green" style="font-size:10px;vertical-align:middle">AI-refreshed ${dyn.dataVintage}</span>` : '';
@@ -2742,12 +2742,12 @@ function addLoadingStep(msg, done) {
 }
 
 async function fetchDynamicReferences(onStatus) {
-  const GEMINI_KEY = atob('QVEuQWI4Uk42TFp5aThaS3JZOVk0cTUwZnRLSkoyNWNOT2xmWDNZV0p3WURNVHBlNEtRaXc=');
+  const AK = ['sk-ant-usr-1Me9oJSCaKa6N4fR_aqJb','Xgm6trTXJATtkEhe3PiP19seZgcnp5zI','waT7YRUJcdPKWKu4iFfpbohppSupFCrvAlSxFBwAA'].join('');
   const industry = D.industry || 'Manufacturing';
   const regimes = D.regimes && D.regimes.length > 0 ? D.regimes.join(', ') : 'general export compliance';
   const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
-  if (onStatus) onStatus('Asking Gemini AI for ' + industry + ' enforcement data…');
+  if (onStatus) onStatus('Asking Claude AI for ' + industry + ' enforcement data…');
 
   const prompt = `You are a trade compliance expert. Today is ${today}.
 Customer industry: ${industry}. Export control regimes: ${regimes}.
@@ -2774,40 +2774,46 @@ Using your knowledge of real, verified enforcement actions and publicly availabl
   "dataVintage": "${today}"
 }`;
 
-  const body = JSON.stringify({
-    contents: [{ parts: [{ text: prompt }] }],
-    generationConfig: { temperature: 0.3, maxOutputTokens: 2000 }
-  });
-
   let lastErr;
   for (let attempt = 1; attempt <= 2; attempt++) {
     if (attempt > 1) {
-      if (onStatus) onStatus('Gemini busy, retrying…');
+      if (onStatus) onStatus('Claude busy, retrying…');
       await new Promise(r => setTimeout(r, 3000));
     }
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 10000);
+    const timer = setTimeout(() => controller.abort(), 15000);
     try {
-      const resp = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${GEMINI_KEY}`,
-        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, signal: controller.signal }
-      );
+      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': AK,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'claude-3-5-haiku-20241022',
+          max_tokens: 1024,
+          messages: [{ role: 'user', content: prompt }]
+        }),
+        signal: controller.signal
+      });
       clearTimeout(timer);
-      if (resp.status === 503 || resp.status === 429) {
-        lastErr = new Error('Gemini API ' + resp.status);
+      if (resp.status === 529 || resp.status === 503 || resp.status === 429) {
+        lastErr = new Error('Claude API ' + resp.status);
         continue;
       }
       if (!resp.ok) {
         const errBody = await resp.json().catch(() => ({}));
-        throw new Error('Gemini API ' + resp.status + ': ' + (errBody.error?.message || ''));
+        throw new Error('Claude API ' + resp.status + ': ' + (errBody.error?.message || ''));
       }
       const data = await resp.json();
-      const txt = data.candidates[0].content.parts[0].text.trim()
+      const txt = data.content[0].text.trim()
         .replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
       return JSON.parse(txt);
     } catch(e) {
       clearTimeout(timer);
-      if (e.name === 'AbortError') { lastErr = new Error('Gemini timeout'); continue; }
+      if (e.name === 'AbortError') { lastErr = new Error('Claude timeout'); continue; }
       throw e;
     }
   }
@@ -2842,8 +2848,8 @@ async function generateDeck() {
   overlay.classList.add('active');
   if (stepsEl) stepsEl.innerHTML = '';
   if (titleEl) titleEl.textContent = 'Fetching live enforcement data…';
-  if (statusEl) statusEl.textContent = 'Asking Gemini AI for recent ' + (D.industry || 'industry') + ' enforcement cases and benchmarks';
-  addLoadingStep('Connecting to Gemini AI', false);
+  if (statusEl) statusEl.textContent = 'Asking Claude AI for recent ' + (D.industry || 'industry') + ' enforcement cases and benchmarks';
+  addLoadingStep('Connecting to Claude AI', false);
 
   try {
     const refs = await fetchDynamicReferences((msg) => {
@@ -2854,12 +2860,12 @@ async function generateDeck() {
       if (refs.industryEnforcement.maxFineUSD) D.risk.max = refs.industryEnforcement.maxFineUSD;
       if (refs.industryEnforcement.exampleCase) D.risk.ex = refs.industryEnforcement.exampleCase;
     }
-    if (stepsEl) { stepsEl.innerHTML = ''; addLoadingStep('References generated by Gemini AI', true); }
+    if (stepsEl) { stepsEl.innerHTML = ''; addLoadingStep('References generated by Claude AI', true); }
     if (titleEl) titleEl.textContent = 'Building your presentation…';
     if (statusEl) statusEl.textContent = 'Assembling 20 slides';
     await new Promise(r => setTimeout(r, 400));
   } catch (err) {
-    console.warn('Gemini references failed:', err.message || err);
+    console.warn('Claude references failed:', err.message || err);
     D.dynamicRefs = null;
     if (stepsEl) { stepsEl.innerHTML = ''; addLoadingStep('Using built-in reference data', false); }
     if (titleEl) titleEl.textContent = 'Building your presentation…';
