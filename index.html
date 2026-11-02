@@ -2762,16 +2762,16 @@ async function fetchDynamicReferences(apiKey, onStatus) {
   const prompt = `You are a trade compliance expert. Today is ${today}.
 Customer industry: ${industry}. Export control regimes: ${regimes}.
 
-Search the web for the most recent enforcement cases and analyst benchmarks for ${industry} trade compliance. Look for:
-1. Recent large export control or customs enforcement penalties in ${industry} (last 3 years preferred)
-2. Analyst study benchmarks on trade compliance automation ROI
-3. Recent regulatory developments affecting ${industry}
+IMPORTANT: You MUST use the web_search tool to find real, verified enforcement cases before responding. Do NOT use information from your training data for the exampleCase or recentCases fields — only use facts found via web search.
 
-Return ONLY valid JSON (no markdown, no explanation):
+Search for: "${industry} export control customs enforcement penalty fine BIS OFAC 2022 2023 2024"
+Then search for: "trade compliance automation ROI benchmarks analyst study"
+
+After searching, return ONLY valid JSON (no markdown, no explanation):
 {
   "industryEnforcement": {
-    "maxFineUSD": <largest single penalty in ${industry} in last 5 years as a number>,
-    "exampleCase": "<Company — $XM AUTHORITY (YEAR): one-line description>",
+    "maxFineUSD": <largest single verified penalty found via web search as a number>,
+    "exampleCase": "<Company — $XM AUTHORITY (YEAR): one-line description — sourced from web search>",
     "recentCases": [
       "<Case 1: Company, amount, authority, year, brief description>",
       "<Case 2: Company, amount, authority, year, brief description>"
@@ -2799,6 +2799,7 @@ Return ONLY valid JSON (no markdown, no explanation):
       headers: {
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'web-search-2025-03-05',
         'anthropic-dangerous-direct-browser-access': 'true',
         'content-type': 'application/json'
       },
